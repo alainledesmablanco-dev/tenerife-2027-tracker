@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-08-09 02:24",
+  "ultima_comprobacion": "2026-08-09 20:35",
   "tarifas_actuales": [],
   "registros": [
     {
@@ -33,6 +33,14 @@
     },
     {
       "fecha": "2026-08-09 02:24",
+      "mejor_total": null,
+      "mejor_detalle": null,
+      "tarifas_encontradas": 0,
+      "vuelos_abiertos": true,
+      "detalle_vuelos": "El paquete vuelo+hotel ya devuelve resultados con origen Bilbao"
+    },
+    {
+      "fecha": "2026-08-09 20:35",
       "mejor_total": null,
       "mejor_detalle": null,
       "tarifas_encontradas": 0,
