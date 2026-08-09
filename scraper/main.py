@@ -12,7 +12,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 from . import config as cfg
-from . import landmar, notify, report, vuelos
+from . import landmar, notify, report, vuelos, vuelos_amadeus
 
 RAIZ = Path(__file__).resolve().parent.parent
 HISTORICO = RAIZ / "data" / "historico.json"
@@ -47,8 +47,8 @@ def guardar_historico(datos: dict) -> None:
     )
 
 
-def rastrear() -> tuple[list[dict], bool, str]:
-    """Devuelve (tarifas, vuelos_abiertos, detalle_vuelos)."""
+def rastrear() -> tuple[list[dict], bool, str, list[dict]]:
+    """Devuelve (tarifas, vuelos_abiertos, detalle_vuelos, ofertas_vuelos)."""
     tarifas: list[dict] = []
     max_ventanas = int(os.environ.get("MAX_VENTANAS", "35"))
     ventanas = cfg.ventanas_validas()[:max_ventanas]
@@ -90,12 +90,23 @@ def rastrear() -> tuple[list[dict], bool, str]:
         contexto.close()
         navegador.close()
 
-    return tarifas, abiertos, detalle
+    # Si Amadeus está configurado, manda él: consulta el inventario real de las
+    # aerolíneas en vez de deducirlo del buscador de paquetes del hotel.
+    ofertas: list[dict] = []
+    if vuelos_amadeus.configurado():
+        log.info("Comprobando vuelos con Amadeus")
+        abiertos_am, detalle_am, ofertas = vuelos_amadeus.buscar()
+        abiertos, detalle = abiertos_am, detalle_am
+        log.info("Amadeus: %s (%s)", abiertos, detalle)
+    else:
+        log.info("Amadeus no configurado; se usa la detección indirecta")
+
+    return tarifas, abiertos, detalle, ofertas
 
 
 def main() -> int:
     datos = cargar_historico()
-    tarifas, abiertos, detalle = rastrear()
+    tarifas, abiertos, detalle, ofertas_vuelos = rastrear()
 
     validas = [
         t for t in tarifas
@@ -116,6 +127,7 @@ def main() -> int:
         "detalle_vuelos": detalle,
     })
     datos["vuelos_abiertos"] = abiertos
+    datos["ofertas_vuelos"] = ofertas_vuelos[:10]
     datos["ultima_comprobacion"] = sello.strftime("%Y-%m-%d %H:%M")
     datos["tarifas_actuales"] = sorted(validas, key=lambda t: t["total"])[:20]
 
