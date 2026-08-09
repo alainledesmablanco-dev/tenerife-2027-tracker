@@ -162,66 +162,101 @@ def _parsear_tarifas(page: Page, entrada: date, salida: date, noches: int,
                      promo: str | None) -> list[Tarifa]:
     """Recorre las tarjetas de habitación y extrae las tarifas relevantes."""
     tarifas: list[Tarifa] = []
-    tarjetas = page.locator("div:has(> h2), div:has(> h3)")
 
     texto = page.locator("body").inner_text()
-    if "no hay disponibilidad" in texto.lower() or "sin disponibilidad" in texto.lower():
-        log.info("Sin disponibilidad para %s → %s", entrada, salida)
+    # OJO: la leyenda del calendario incluye SIEMPRE "Fecha sin disponibilidad",
+    # así que buscar ese texto suelto daba un falso positivo en todas las fechas.
+    # La señal fiable es que no aparezca ningún precio en la página.
+    if "EUR" not in texto:
+        log.info("Sin tarifas para %s → %s", entrada, salida)
         return tarifas
 
-    # El motor agrupa: nombre de habitación, bloque de condiciones, filas de régimen.
-    bloques = page.locator("xpath=//*[contains(text(),'PAGA')]")
-    for i in range(bloques.count()):
-        bloque = bloques.nth(i)
-        etiqueta_bloque = (bloque.inner_text() or "").upper()
-        cancelable = cfg.BLOQUE_CANCELABLE in etiqueta_bloque
+    # El motor pinta, por cada habitación, cabeceras de bloque tipo
+    # "PAGA AHORA + UNA MODIFICACIÓN GRATIS" / "PAGA EN EL HOTEL + CANCELACIÓN
+    # GRATUITA" y, debajo, una fila por régimen. Recorremos las cabeceras y
+    # leemos las filas que las siguen hasta la siguiente cabecera.
+    cabeceras = page.locator(
+        "xpath=//*[not(*) and (contains(translate(text(),'áéíóú','aeiou'),'PAGA AHORA')"
+        " or contains(translate(text(),'áéíóú','aeiou'),'PAGA EN EL HOTEL'))]"
+    )
+    total_cabeceras = cabeceras.count()
+    log.info("%s bloques de tarifas detectados", total_cabeceras)
+
+    for i in range(total_cabeceras):
+        cabecera = cabeceras.nth(i)
+        try:
+            etiqueta = (cabecera.inner_text(timeout=3000) or "").upper()
+        except Exception:  # noqa: BLE001
+            continue
+        cancelable = cfg.BLOQUE_CANCELABLE in etiqueta
         if cfg.SOLO_CANCELABLE and not cancelable:
             continue
 
-        habitacion = _habitacion_de(bloque)
-        contenedor = bloque.locator("xpath=following-sibling::*[position()<=6]")
-        for j in range(contenedor.count()):
-            fila = contenedor.nth(j)
+        habitacion = _habitacion_de(cabecera)
+
+        # Subimos al contenedor del bloque y leemos sus hermanos siguientes.
+        filas = cabecera.locator(
+            "xpath=ancestor-or-self::*[parent::*][1]/following-sibling::*[position()<=8]"
+        )
+        for j in range(filas.count()):
             try:
-                txt = fila.inner_text(timeout=3000)
+                txt = filas.nth(j).inner_text(timeout=3000)
             except Exception:  # noqa: BLE001
                 continue
             if "EUR" not in txt:
                 continue
+            if "PAGA AHORA" in txt.upper() or "PAGA EN EL HOTEL" in txt.upper():
+                break  # hemos llegado al siguiente bloque
             if cfg.SOLO_TODO_INCLUIDO and cfg.REGIMEN_TI.lower() not in txt.lower():
                 continue
 
-            precios = [p for p in (_num(x) for x in txt.split("\n")) if p]
-            if len(precios) < 2:
-                continue
+            tarifa = _tarifa_de_fila(txt, entrada, salida, noches,
+                                     habitacion, cancelable, promo)
+            if tarifa:
+                tarifas.append(tarifa)
 
-            m_noches = NOCHES_RE.search(txt)
-            n = int(m_noches.group(1)) if m_noches else noches
-            total = max(precios)
-            por_noche = round(total / n, 2) if n else None
-            antes = None
-            if len(precios) >= 3:
-                antes = max(precios)
-                total = sorted(precios)[-2]
-                por_noche = round(total / n, 2) if n else None
-
-            m_dto = re.search(r"-(\d{1,2})\s*%", txt)
-            regimen = "Todo Incluido Plus" if "Plus" in txt else cfg.REGIMEN_TI
-
-            tarifas.append(Tarifa(
-                entrada=entrada.isoformat(),
-                salida=salida.isoformat(),
-                noches=n,
-                habitacion=habitacion,
-                regimen=regimen,
-                total=total,
-                por_noche=por_noche or 0.0,
-                antes=antes,
-                descuento=f"-{m_dto.group(1)}%" if m_dto else None,
-                cancelable=cancelable,
-                codigo_promo=promo,
-            ))
+    log.info("%s → %s: %s tarifas leídas", entrada, salida, len(tarifas))
     return tarifas
+
+
+def _tarifa_de_fila(txt: str, entrada: date, salida: date, noches: int,
+                    habitacion: str, cancelable: bool,
+                    promo: str | None) -> Tarifa | None:
+    """Convierte el texto de una fila de régimen en una Tarifa."""
+    precios = [p for p in (_num(x) for x in txt.split("\n")) if p]
+    if len(precios) < 2:
+        return None
+
+    m_noches = NOCHES_RE.search(txt)
+    n = int(m_noches.group(1)) if m_noches else noches
+
+    # En cada fila aparecen: precio/noche tachado, precio/noche, total tachado,
+    # total. Nos quedamos con los dos mayores: el mayor es el "antes" y el
+    # siguiente el total real a pagar.
+    ordenados = sorted(precios)
+    total = ordenados[-1]
+    antes = None
+    if len(ordenados) >= 2 and ordenados[-2] != ordenados[-1]:
+        antes = ordenados[-1]
+        total = ordenados[-2]
+
+    por_noche = round(total / n, 2) if n else 0.0
+    m_dto = re.search(r"-(\d{1,2})\s*%", txt)
+    regimen = "Todo Incluido Plus" if "Plus" in txt else cfg.REGIMEN_TI
+
+    return Tarifa(
+        entrada=entrada.isoformat(),
+        salida=salida.isoformat(),
+        noches=n,
+        habitacion=habitacion,
+        regimen=regimen,
+        total=total,
+        por_noche=por_noche,
+        antes=antes,
+        descuento=f"-{m_dto.group(1)}%" if m_dto else None,
+        cancelable=cancelable,
+        codigo_promo=promo,
+    )
 
 
 def _habitacion_de(bloque) -> str:
