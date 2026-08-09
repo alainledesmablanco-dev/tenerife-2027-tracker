@@ -12,8 +12,8 @@
     "cancelable": true,
     "codigo_promo": null
   },
-  "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-08-09 20:35",
+  "vuelos_abiertos": false,
+  "ultima_comprobacion": "2026-08-09 23:56",
   "tarifas_actuales": [],
   "registros": [
     {
@@ -46,6 +46,15 @@
       "tarifas_encontradas": 0,
       "vuelos_abiertos": true,
       "detalle_vuelos": "El paquete vuelo+hotel ya devuelve resultados con origen Bilbao"
+    },
+    {
+      "fecha": "2026-08-09 23:56",
+      "mejor_total": null,
+      "mejor_detalle": null,
+      "tarifas_encontradas": 0,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"
     }
-  ]
+  ],
+  "ofertas_vuelos": []
 }
