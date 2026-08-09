@@ -11,6 +11,13 @@ de los casos, así que hay dos estrategias:
 Siempre se verifica que la cabecera muestre las fechas pedidas antes de leer
 precios. Si no coinciden, se descarta la lectura en vez de devolver un precio
 de otras fechas.
+
+Nota sobre selectores
+---------------------
+Las cabeceras de bloque ("PAGA AHORA + UNA MODIFICACIÓN GRATIS") se ven en
+mayúsculas por CSS (text-transform), pero en el HTML están en minúscula. Un
+XPath con contains(., 'PAGA') no encuentra nada, porque XPath lee el DOM crudo.
+Hay que usar get_by_text de Playwright, que trabaja sobre el texto renderizado.
 """
 
 from __future__ import annotations
@@ -28,6 +35,7 @@ log = logging.getLogger(__name__)
 
 PRECIO_RE = re.compile(r"([\d.]+(?:,\d+)?)\s*EUR")
 NOCHES_RE = re.compile(r"Total\s*\((\d+)x\s*Noches?\)", re.I)
+CABECERA_RE = re.compile(r"PAGA\s+(AHORA|EN\s+EL\s+HOTEL)", re.I)
 
 
 @dataclass
@@ -171,10 +179,9 @@ def _parsear_tarifas(page: Page, entrada: date, salida: date, noches: int,
         log.info("Sin tarifas para %s → %s", entrada, salida)
         return tarifas
 
-    # El motor pinta, por cada habitación, cabeceras de bloque tipo
-    # "PAGA AHORA + UNA MODIFICACIÓN GRATIS" / "PAGA EN EL HOTEL + CANCELACIÓN
-    # GRATUITA" y, debajo, una fila por régimen.
-    cabeceras = page.locator("xpath=//*[not(*)][contains(., 'PAGA')]")
+    # get_by_text trabaja sobre el texto RENDERIZADO, así que ve las mayúsculas
+    # que aplica el CSS. Con XPath sobre el DOM crudo esto daba siempre 0.
+    cabeceras = page.get_by_text(CABECERA_RE)
     total_cabeceras = cabeceras.count()
     log.info("%s bloques de tarifas detectados", total_cabeceras)
 
@@ -200,7 +207,7 @@ def _parsear_tarifas(page: Page, entrada: date, salida: date, noches: int,
                 continue
             if "EUR" not in txt:
                 continue
-            if "PAGA AHORA" in txt.upper() or "PAGA EN EL HOTEL" in txt.upper():
+            if CABECERA_RE.search(txt):
                 break  # hemos llegado al siguiente bloque
             if cfg.SOLO_TODO_INCLUIDO and cfg.REGIMEN_TI.lower() not in txt.lower():
                 continue
@@ -276,13 +283,10 @@ def consultar(page: Page, entrada: date, salida: date, noches: int,
               wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
     _aceptar_cookies(page)
 
-    # El motor carga las tarifas por XHR y tarda del orden de 15-20 s. Antes se
-    # esperaban 6 s fijos y se leía la página medio vacía: de ahí los "0 bloques".
-    try:
-        page.wait_for_selector("text=/\\d\\s*EUR/", timeout=cfg.TIMEOUT_MS)
-        page.wait_for_timeout(1500)          # margen para que acabe de pintar
-    except PWTimeout:
-        log.info("No aparecieron precios tras %s s", cfg.TIMEOUT_MS // 1000)
+    # Los logs confirman que a los pocos segundos la página ya tiene precios.
+    # No hace falta la espera activa que se probó antes: nunca casaba y costaba
+    # 45 s por fecha, lo que reventaba el timeout de 30 min del job.
+    page.wait_for_timeout(8000)
 
     if not _cabecera_ok(page, entrada, salida):
         log.info("La URL directa no fijó las fechas; conduciendo la interfaz")
