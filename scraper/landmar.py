@@ -1,23 +1,42 @@
 """Lectura del motor de reservas de Landmar Hotels.
 
-El motor es una SPA que ignora los parámetros de fecha de la URL en la mayoría
-de los casos, así que hay dos estrategias:
+Estrategia
+----------
+1. URL directa con los nombres de parámetro del propio motor
+   (startDate / endDate / adultsRoom1 / childrenRoom1 / agesKid1).
+2. Si eso no cuaja, se conduce la interfaz: calendario, ocupación y
+   "Repetir búsqueda".
 
-  1. URL directa con los nombres de parámetro que usa el propio motor
-     (startDate / endDate / adultsRoom1 / childrenRoom1 / agesKid1).
-  2. Si eso no cuaja, se conduce la interfaz: calendario, ocupación y
-     "Repetir búsqueda".
-
-Siempre se verifica que la cabecera muestre las fechas pedidas antes de leer
+Siempre se verifica que la página muestre las fechas pedidas antes de leer
 precios. Si no coinciden, se descarta la lectura en vez de devolver un precio
 de otras fechas.
 
-Nota sobre selectores
----------------------
-Las cabeceras de bloque ("PAGA AHORA + UNA MODIFICACIÓN GRATIS") se ven en
-mayúsculas por CSS (text-transform), pero en el HTML están en minúscula. Un
-XPath con contains(., 'PAGA') no encuentra nada, porque XPath lee el DOM crudo.
-Hay que usar get_by_text de Playwright, que trabaja sobre el texto renderizado.
+Por qué se parsea TEXTO y no el DOM
+-----------------------------------
+Las versiones anteriores navegaban el HTML y fallaban por dos motivos:
+
+  * Las cabeceras ("PAGA AHORA + UNA MODIFICACIÓN GRATIS") se ven en mayúsculas
+    por CSS (text-transform), pero en el HTML están en minúscula. Un XPath con
+    contains(., 'PAGA') devolvía siempre 0 resultados.
+  * Las filas de precio no son hermanas de la cabecera en el árbol, así que
+    buscarlas con following-sibling tampoco encontraba nada.
+
+`body.inner_text()` devuelve el texto RENDERIZADO y en orden visual, que es
+justo lo que se ve en pantalla. Recorrerlo con una máquina de estados es mucho
+más estable que adivinar el anidamiento del HTML. Estructura de cada fila:
+
+    Todo Incluido Plus            <- régimen
+    Varios descuentos | -10%      <- descuento (opcional)
+    315EUR                        <- €/noche antes
+    283EUR                        <- €/noche
+    por noche
+    2208EUR                       <- total antes
+    1987EUR                       <- total
+    -10%
+    Ahorras
+    221EUR                        <- ahorro (NO es un precio)
+    Total (7x Noches)
+    SELECCIONAR                   <- fin de la fila
 """
 
 from __future__ import annotations
@@ -34,8 +53,13 @@ from . import config as cfg
 log = logging.getLogger(__name__)
 
 PRECIO_RE = re.compile(r"([\d.]+(?:,\d+)?)\s*EUR")
-NOCHES_RE = re.compile(r"Total\s*\((\d+)x\s*Noches?\)", re.I)
-CABECERA_RE = re.compile(r"PAGA\s+(AHORA|EN\s+EL\s+HOTEL)", re.I)
+NOCHES_RE = re.compile(r"Total\s*\((\d+)\s*x\s*Noches?\)", re.I)
+CABECERA_RE = re.compile(r"^PAGA\s+(AHORA|EN\s+EL\s+HOTEL)", re.I)
+# Insensible a acentos: el motor no siempre los pinta igual.
+CANCELABLE_RE = re.compile(r"CANCELACI[OÓ]N\s+GRATUITA", re.I)
+
+FIN_FILA = "SELECCIONAR"
+ANCLA_REGIMEN = ("condiciones de la reserva", FIN_FILA.lower())
 
 
 @dataclass
@@ -60,9 +84,8 @@ def _num(txt: str) -> float | None:
     m = PRECIO_RE.search(txt or "")
     if not m:
         return None
-    crudo = m.group(1).replace(".", "").replace(",", ".")
     try:
-        return float(crudo)
+        return float(m.group(1).replace(".", "").replace(",", "."))
     except ValueError:
         return None
 
@@ -123,7 +146,6 @@ def _fijar_por_interfaz(page: Page, entrada: date, salida: date) -> bool:
         page.get_by_text("Entrada", exact=True).first.click(timeout=8000)
         page.wait_for_timeout(800)
 
-        # Avanzar mes a mes hasta ver el objetivo (tope de seguridad: 30 saltos)
         for _ in range(30):
             if objetivo in page.locator("body").inner_text():
                 break
@@ -138,7 +160,6 @@ def _fijar_por_interfaz(page: Page, entrada: date, salida: date) -> bool:
         _clic_dia(page, salida)
         page.wait_for_timeout(900)
 
-        # Ocupación
         page.get_by_text("Ocupación", exact=True).first.click(timeout=8000)
         page.wait_for_timeout(600)
         selects = page.locator("select")
@@ -160,120 +181,133 @@ def _fijar_por_interfaz(page: Page, entrada: date, salida: date) -> bool:
 
 def _clic_dia(page: Page, dia: date) -> None:
     """Pulsa el número de día dentro del calendario abierto."""
-    celda = page.locator(
-        f"td:not(.disabled):not(.off) >> text=/^{dia.day}$/"
-    ).first
+    celda = page.locator(f"td:not(.disabled):not(.off) >> text=/^{dia.day}$/").first
     celda.click(timeout=6000)
+
+
+# --------------------------------------------------------------- parseo texto
+
+def _es_nombre_habitacion(lineas: list[str], i: int) -> bool:
+    """El nombre es corto y sin punto, y justo debajo lleva su descripción larga.
+
+    Ese segundo requisito descarta el desplegable "Seleccionar habitación", que
+    también lista los nombres pero sin descripción debajo.
+    """
+    linea = lineas[i]
+    if not linea or len(linea) > 40 or "." in linea:
+        return False
+    siguiente = next((l for l in lineas[i + 1:i + 5] if l), "")
+    return len(siguiente) > 60
+
+
+def _fila(bloque: list[str], noches_def: int) -> dict | None:
+    """Convierte las líneas de una fila (régimen → SELECCIONAR) en datos."""
+    try:
+        idx_pn = next(i for i, l in enumerate(bloque) if l.lower() == "por noche")
+    except StopIteration:
+        return None
+
+    por_noche_vals = [v for v in (_num(l) for l in bloque[:idx_pn]) if v]
+
+    # Tras "por noche" vienen los totales. Hay que saltarse el importe que sigue
+    # a "Ahorras", que es el descuento en euros y no un precio.
+    totales: list[float] = []
+    saltar = False
+    for l in bloque[idx_pn + 1:]:
+        if "ahorras" in l.lower():
+            saltar = True
+            continue
+        v = _num(l)
+        if v is None:
+            continue
+        if saltar:
+            saltar = False
+            continue
+        totales.append(v)
+
+    if not totales or not por_noche_vals:
+        return None
+
+    texto = "\n".join(bloque)
+    m_noches = NOCHES_RE.search(texto)
+    m_dto = re.search(r"-(\d{1,2})\s*%", texto)
+    return {
+        "regimen": bloque[0],
+        "total": totales[-1],
+        "antes": totales[0] if len(totales) > 1 else None,
+        "por_noche": por_noche_vals[-1],
+        "noches": int(m_noches.group(1)) if m_noches else noches_def,
+        "descuento": f"-{m_dto.group(1)}%" if m_dto else None,
+    }
 
 
 def _parsear_tarifas(page: Page, entrada: date, salida: date, noches: int,
                      promo: str | None) -> list[Tarifa]:
-    """Recorre las tarjetas de habitación y extrae las tarifas relevantes."""
+    """Recorre el texto renderizado y extrae las tarifas que cumplen los filtros."""
     tarifas: list[Tarifa] = []
-
     texto = page.locator("body").inner_text()
+
     # OJO: la leyenda del calendario incluye SIEMPRE "Fecha sin disponibilidad",
-    # así que buscar ese texto suelto daba un falso positivo en todas las fechas.
-    # La señal fiable es que no aparezca ningún precio en la página.
+    # así que buscar ese texto daba un falso positivo en todas las fechas.
+    # La señal fiable es que no aparezca ningún precio.
     if "EUR" not in texto:
         log.info("Sin tarifas para %s → %s", entrada, salida)
         return tarifas
 
-    # get_by_text trabaja sobre el texto RENDERIZADO, así que ve las mayúsculas
-    # que aplica el CSS. Con XPath sobre el DOM crudo esto daba siempre 0.
-    cabeceras = page.get_by_text(CABECERA_RE)
-    total_cabeceras = cabeceras.count()
-    log.info("%s bloques de tarifas detectados", total_cabeceras)
+    lineas = [l.strip() for l in texto.split("\n")]
+    habitacion, cancelable = "Desconocida", None
+    leidas = 0
+    i = 0
 
-    for i in range(total_cabeceras):
-        cabecera = cabeceras.nth(i)
-        try:
-            etiqueta = (cabecera.inner_text(timeout=3000) or "").upper()
-        except Exception:  # noqa: BLE001
-            continue
-        cancelable = cfg.BLOQUE_CANCELABLE in etiqueta
-        if cfg.SOLO_CANCELABLE and not cancelable:
-            continue
+    while i < len(lineas):
+        linea = lineas[i]
 
-        habitacion = _habitacion_de(cabecera)
+        if _es_nombre_habitacion(lineas, i):
+            habitacion = linea
+            cancelable = None          # cada ficha trae sus propios bloques
 
-        filas = cabecera.locator(
-            "xpath=ancestor-or-self::*[parent::*][1]/following-sibling::*[position()<=8]"
-        )
-        for j in range(filas.count()):
-            try:
-                txt = filas.nth(j).inner_text(timeout=3000)
-            except Exception:  # noqa: BLE001
-                continue
-            if "EUR" not in txt:
-                continue
-            if CABECERA_RE.search(txt):
-                break  # hemos llegado al siguiente bloque
-            if cfg.SOLO_TODO_INCLUIDO and cfg.REGIMEN_TI.lower() not in txt.lower():
-                continue
+        elif CABECERA_RE.match(linea):
+            cancelable = bool(CANCELABLE_RE.search(linea))
 
-            tarifa = _tarifa_de_fila(txt, entrada, salida, noches,
-                                     habitacion, cancelable, promo)
-            if tarifa:
-                tarifas.append(tarifa)
+        elif linea.lower() in ANCLA_REGIMEN and cancelable is not None:
+            j = i + 1
+            while j < len(lineas) and not lineas[j]:
+                j += 1
+            # Tras un SELECCIONAR puede venir la cabecera del bloque siguiente o
+            # el nombre de la habitación siguiente: ninguno es un régimen.
+            if (j < len(lineas) and not CABECERA_RE.match(lineas[j])
+                    and not _es_nombre_habitacion(lineas, j)):
+                fin = j
+                while fin < len(lineas) and lineas[fin] != FIN_FILA:
+                    fin += 1
+                if fin < len(lineas):
+                    datos = _fila(lineas[j:fin], noches)
+                    if datos:
+                        leidas += 1
+                        if _pasa_filtros(datos, cancelable):
+                            tarifas.append(Tarifa(
+                                entrada=entrada.isoformat(),
+                                salida=salida.isoformat(),
+                                habitacion=habitacion,
+                                cancelable=cancelable,
+                                codigo_promo=promo,
+                                **datos,
+                            ))
+                    i = fin            # el SELECCIONAR dispara la fila siguiente
+                    continue
+        i += 1
 
-    log.info("%s → %s: %s tarifas leídas", entrada, salida, len(tarifas))
+    log.info("%s → %s: %s filas leídas, %s pasan los filtros",
+             entrada, salida, leidas, len(tarifas))
     return tarifas
 
 
-def _tarifa_de_fila(txt: str, entrada: date, salida: date, noches: int,
-                    habitacion: str, cancelable: bool,
-                    promo: str | None) -> Tarifa | None:
-    """Convierte el texto de una fila de régimen en una Tarifa."""
-    precios = [p for p in (_num(x) for x in txt.split("\n")) if p]
-    if len(precios) < 2:
-        return None
-
-    m_noches = NOCHES_RE.search(txt)
-    n = int(m_noches.group(1)) if m_noches else noches
-
-    ordenados = sorted(precios)
-    total = ordenados[-1]
-    antes = None
-    if len(ordenados) >= 2 and ordenados[-2] != ordenados[-1]:
-        antes = ordenados[-1]
-        total = ordenados[-2]
-
-    por_noche = round(total / n, 2) if n else 0.0
-    m_dto = re.search(r"-(\d{1,2})\s*%", txt)
-    regimen = "Todo Incluido Plus" if "Plus" in txt else cfg.REGIMEN_TI
-
-    return Tarifa(
-        entrada=entrada.isoformat(),
-        salida=salida.isoformat(),
-        noches=n,
-        habitacion=habitacion,
-        regimen=regimen,
-        total=total,
-        por_noche=por_noche,
-        antes=antes,
-        descuento=f"-{m_dto.group(1)}%" if m_dto else None,
-        cancelable=cancelable,
-        codigo_promo=promo,
-    )
-
-
-def _habitacion_de(bloque) -> str:
-    """Busca hacia arriba el título de la habitación a la que pertenece el bloque."""
-    for xpath in (
-        "xpath=preceding::h2[1]",
-        "xpath=preceding::h3[1]",
-        "xpath=ancestor::*[self::section or self::article][1]//h2[1]",
-    ):
-        try:
-            nodo = bloque.locator(xpath)
-            if nodo.count():
-                nombre = (nodo.first.inner_text(timeout=2000) or "").strip()
-                if nombre and len(nombre) < 60:
-                    return nombre
-        except Exception:  # noqa: BLE001
-            continue
-    return "Desconocida"
+def _pasa_filtros(datos: dict, cancelable: bool) -> bool:
+    if cfg.SOLO_CANCELABLE and not cancelable:
+        return False
+    if cfg.SOLO_TODO_INCLUIDO and cfg.REGIMEN_TI.lower() not in datos["regimen"].lower():
+        return False
+    return True
 
 
 def consultar(page: Page, entrada: date, salida: date, noches: int,
@@ -283,9 +317,9 @@ def consultar(page: Page, entrada: date, salida: date, noches: int,
               wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
     _aceptar_cookies(page)
 
-    # Los logs confirman que a los pocos segundos la página ya tiene precios.
-    # No hace falta la espera activa que se probó antes: nunca casaba y costaba
-    # 45 s por fecha, lo que reventaba el timeout de 30 min del job.
+    # Los logs confirman que a los pocos segundos la página ya trae precios. Una
+    # espera activa que se probó antes nunca casaba y costaba 45 s por fecha, lo
+    # que reventaba el timeout de 30 minutos del job.
     page.wait_for_timeout(8000)
 
     if not _cabecera_ok(page, entrada, salida):
