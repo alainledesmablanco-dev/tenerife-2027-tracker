@@ -173,12 +173,8 @@ def _parsear_tarifas(page: Page, entrada: date, salida: date, noches: int,
 
     # El motor pinta, por cada habitación, cabeceras de bloque tipo
     # "PAGA AHORA + UNA MODIFICACIÓN GRATIS" / "PAGA EN EL HOTEL + CANCELACIÓN
-    # GRATUITA" y, debajo, una fila por régimen. Recorremos las cabeceras y
-    # leemos las filas que las siguen hasta la siguiente cabecera.
-    cabeceras = page.locator(
-        "xpath=//*[not(*) and (contains(translate(text(),'áéíóú','aeiou'),'PAGA AHORA')"
-        " or contains(translate(text(),'áéíóú','aeiou'),'PAGA EN EL HOTEL'))]"
-    )
+    # GRATUITA" y, debajo, una fila por régimen.
+    cabeceras = page.locator("xpath=//*[not(*)][contains(., 'PAGA')]")
     total_cabeceras = cabeceras.count()
     log.info("%s bloques de tarifas detectados", total_cabeceras)
 
@@ -194,7 +190,6 @@ def _parsear_tarifas(page: Page, entrada: date, salida: date, noches: int,
 
         habitacion = _habitacion_de(cabecera)
 
-        # Subimos al contenedor del bloque y leemos sus hermanos siguientes.
         filas = cabecera.locator(
             "xpath=ancestor-or-self::*[parent::*][1]/following-sibling::*[position()<=8]"
         )
@@ -230,9 +225,6 @@ def _tarifa_de_fila(txt: str, entrada: date, salida: date, noches: int,
     m_noches = NOCHES_RE.search(txt)
     n = int(m_noches.group(1)) if m_noches else noches
 
-    # En cada fila aparecen: precio/noche tachado, precio/noche, total tachado,
-    # total. Nos quedamos con los dos mayores: el mayor es el "antes" y el
-    # siguiente el total real a pagar.
     ordenados = sorted(precios)
     total = ordenados[-1]
     antes = None
@@ -283,7 +275,14 @@ def consultar(page: Page, entrada: date, salida: date, noches: int,
     page.goto(_url_directa(entrada, salida, promo),
               wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
     _aceptar_cookies(page)
-    page.wait_for_timeout(6000)
+
+    # El motor carga las tarifas por XHR y tarda del orden de 15-20 s. Antes se
+    # esperaban 6 s fijos y se leía la página medio vacía: de ahí los "0 bloques".
+    try:
+        page.wait_for_selector("text=/\\d\\s*EUR/", timeout=cfg.TIMEOUT_MS)
+        page.wait_for_timeout(1500)          # margen para que acabe de pintar
+    except PWTimeout:
+        log.info("No aparecieron precios tras %s s", cfg.TIMEOUT_MS // 1000)
 
     if not _cabecera_ok(page, entrada, salida):
         log.info("La URL directa no fijó las fechas; conduciendo la interfaz")
