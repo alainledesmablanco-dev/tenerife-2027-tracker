@@ -322,12 +322,20 @@ def consultar(page: Page, entrada: date, salida: date, noches: int,
     # que reventaba el timeout de 30 minutos del job.
     page.wait_for_timeout(8000)
 
-    if not _cabecera_ok(page, entrada, salida):
-        log.info("La URL directa no fijó las fechas; conduciendo la interfaz")
-        if not _fijar_por_interfaz(page, entrada, salida):
+        # La SPA ignora las fechas de la URL de forma intermitente: en la misma
+    # pasada unas ventanas salen bien y otras no, sin patrón por duración. Un
+    # simple recargar resuelve la mayoría. Conducir el calendario a mano
+    # (_fijar_por_interfaz) fallaba casi siempre con timeout en "Entrada", así
+    # que ya no se usa como plan B.
+    intentos = 0
+    while not _cabecera_ok(page, entrada, salida):
+        intentos += 1
+        if intentos > 2:
+            log.warning("Fechas no confirmadas para %s → %s; se descarta",
+                        entrada, salida)
             return []
-        if not _cabecera_ok(page, entrada, salida):
-            log.warning("Fechas no confirmadas para %s → %s; se descarta", entrada, salida)
-            return []
+        log.info("La URL no fijó las fechas; recargando (intento %s)", intentos)
+        page.reload(wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
+        page.wait_for_timeout(9000)
 
     return _parsear_tarifas(page, entrada, salida, noches, promo)
