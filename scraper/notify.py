@@ -1,4 +1,9 @@
-"""Avisos por Telegram."""
+"""Avisos por Telegram.
+
+Todos los mensajes hablan en €/noche, que es la cifra comparable cuando la
+duración de la estancia es flexible. El total se da como contexto, siempre
+acompañado del número de noches para que no engañe.
+"""
 
 from __future__ import annotations
 
@@ -40,14 +45,16 @@ def enviar(texto: str) -> bool:
 
 
 def formatear_bajada(mejor: dict, anterior: float, url: str) -> str:
-    ahorro = anterior - mejor["total"]
+    ahorro_noche = anterior - mejor["por_noche"]
+    ahorro_estancia = ahorro_noche * mejor["noches"]
     return (
         f"🔻 <b>Baja el precio — Tenerife agosto 2027</b>\n\n"
-        f"<b>{mejor['total']:.0f} €</b> "
-        f"(antes {anterior:.0f} €, ahorras {ahorro:.0f} €)\n"
+        f"<b>{mejor['por_noche']:.0f} €/noche</b> "
+        f"(antes {anterior:.0f} €/noche, −{ahorro_noche:.0f} €)\n\n"
         f"{mejor['habitacion']} · {mejor['regimen']}\n"
         f"{mejor['entrada']} → {mejor['salida']} ({mejor['noches']} noches)\n"
-        f"{mejor['por_noche']:.0f} €/noche · cancelación gratuita\n\n"
+        f"Total <b>{mejor['total']:.0f} €</b> · cancelación gratuita\n"
+        f"Ahorras {ahorro_estancia:.0f} € en esta estancia\n\n"
         f"<a href='{url}'>Abrir la web del hotel</a>"
     )
 
@@ -67,11 +74,15 @@ def formatear_resumen(mejor: dict | None, referencia: float, vuelos: str) -> str
             "ℹ️ <b>Tenerife 2027</b> — no se pudo leer ninguna tarifa esta vez.\n"
             f"Vuelos: {vuelos}"
         )
-    delta = mejor["total"] - referencia
-    signo = "sin cambios" if abs(delta) < 1 else (f"+{delta:.0f} €" if delta > 0 else f"{delta:.0f} €")
+    delta = mejor["por_noche"] - referencia
+    if abs(delta) < 1:
+        signo = "sin cambios"
+    else:
+        signo = f"+{delta:.0f} €/noche" if delta > 0 else f"{delta:.0f} €/noche"
     return (
         f"📊 <b>Tenerife agosto 2027</b>\n\n"
-        f"Mejor Todo Incluido cancelable: <b>{mejor['total']:.0f} €</b> ({signo})\n"
-        f"{mejor['habitacion']} · {mejor['entrada']} → {mejor['salida']}\n"
+        f"Mejor Todo Incluido cancelable: <b>{mejor['por_noche']:.0f} €/noche</b> ({signo})\n"
+        f"{mejor['habitacion']} · {mejor['entrada']} → {mejor['salida']} "
+        f"({mejor['noches']} noches, {mejor['total']:.0f} € en total)\n\n"
         f"Vuelos: {vuelos}"
     )
