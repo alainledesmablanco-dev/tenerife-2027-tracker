@@ -43,7 +43,8 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
           MAX_VENTANAS: "35"
-          MAX_VENTANAS_OTAS: "3"
+          # Una sola búsqueda de OTAs al día: 30 al mes de las 250 gratuitas.
+          MAX_VENTANAS_OTAS: "1"
         run: python -m scraper.main
 
       - name: Guardar histórico
