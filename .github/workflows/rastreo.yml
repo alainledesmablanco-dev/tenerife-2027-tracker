@@ -41,7 +41,9 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
           MAX_VENTANAS: "35"
+          MAX_VENTANAS_OTAS: "3"
         run: python -m scraper.main
 
       - name: Guardar histórico
