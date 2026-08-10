@@ -1,4 +1,8 @@
-"""Genera docs/index.html, el panel que se publica en GitHub Pages."""
+"""Genera docs/index.html, el panel que se publica en GitHub Pages.
+
+El indicador principal es €/noche, no el total: con la duración flexible
+(5 a 9 noches) los totales no son comparables entre sí.
+"""
 
 from __future__ import annotations
 
@@ -53,7 +57,7 @@ solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
 <div class="banner" id="banner"></div>
 
 <div class="grid">
-  <div class="card kpi"><div class="label">Mejor precio</div>
+  <div class="card kpi"><div class="label">Mejor €/noche</div>
     <div class="value" id="kBest">—</div><div class="note" id="kBestNote"></div></div>
   <div class="card kpi"><div class="label">Última comprobación</div>
     <div class="value" id="kLast">—</div><div class="note">2 veces al día</div></div>
@@ -63,7 +67,7 @@ solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
     <div class="value" id="kRuns">—</div><div class="note">desde el inicio</div></div>
 </div>
 
-<h2>Evolución</h2>
+<h2>Evolución (€/noche)</h2>
 <div class="card chartbox"><canvas id="chart"></canvas></div>
 
 <h2>Mejores opciones ahora</h2>
@@ -81,9 +85,11 @@ const eur = n => n == null ? "—" :
   new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n);
 
 const mejor = DATA.mejor_precio_historico;
-document.getElementById("kBest").textContent = eur(mejor && mejor.total);
+document.getElementById("kBest").textContent = eur(mejor && mejor.por_noche);
 document.getElementById("kBestNote").textContent = mejor
-  ? mejor.habitacion + " · " + mejor.entrada + " → " + mejor.salida : "sin datos";
+  ? mejor.habitacion + " · " + mejor.entrada + " → " + mejor.salida +
+    " · " + mejor.noches + " noches · " + eur(mejor.total) + " en total"
+  : "sin datos";
 document.getElementById("kLast").textContent = (DATA.ultima_comprobacion || "—").slice(5);
 document.getElementById("kRuns").textContent = (DATA.registros || []).length;
 document.getElementById("kFly").textContent = DATA.vuelos_abiertos ? "Abiertos" : "Cerrados";
@@ -107,24 +113,24 @@ const tb = document.querySelector("#t tbody");
     '<td class="num">' + t.salida + '</td>' +
     '<td class="num">' + t.noches + '</td>' +
     '<td>' + t.habitacion + '</td>' +
-    '<td class="num">' + eur(t.por_noche) + '</td>' +
-    '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(t.total) + '</td>';
+    '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(t.por_noche) + '</td>' +
+    '<td class="num">' + eur(t.total) + '</td>';
 });
 if (!(DATA.tarifas_actuales || []).length) {
   tb.insertRow().innerHTML = '<td colspan="6" style="color:#8a8279;text-align:center;' +
     'padding:24px">Sin tarifas leídas en la última pasada.</td>';
 }
 
-const pts = (DATA.registros || []).filter(r => r.mejor_total != null);
+const pts = (DATA.registros || []).filter(r => r.mejor_por_noche != null);
 if (pts.length) {
   new Chart(document.getElementById("chart"), {
     type: "line",
     data: { labels: pts.map(p => p.fecha),
-      datasets: [{ data: pts.map(p => p.mejor_total), borderColor: "#1f5f9e",
+      datasets: [{ data: pts.map(p => p.mejor_por_noche), borderColor: "#1f5f9e",
         backgroundColor: "rgba(31,95,158,.08)", fill: true, tension: .25, pointRadius: 3 }] },
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { y: { ticks: { callback: v => v + " €" } } } }
+      scales: { y: { ticks: { callback: v => v + " €/noche" } } } }
   });
 }
 </script>
@@ -141,7 +147,9 @@ def generar(datos: dict, destino: Path) -> None:
         "vuelos_abiertos": datos.get("vuelos_abiertos", False),
         "tarifas_actuales": datos.get("tarifas_actuales", []),
         "registros": [
-            {"fecha": r["fecha"], "mejor_total": r.get("mejor_total"),
+            {"fecha": r["fecha"],
+             "mejor_por_noche": r.get("mejor_por_noche"),
+             "mejor_total": r.get("mejor_total"),
              "detalle_vuelos": r.get("detalle_vuelos")}
             for r in datos.get("registros", [])
         ][-180:],
