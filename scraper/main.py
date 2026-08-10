@@ -98,11 +98,28 @@ def rastrear() -> tuple[list[dict], bool, str]:
 def _toca_otas(datos: dict, sello: datetime) -> bool:
     """Una sola consulta de OTAs por día natural, la primera pasada que toque.
 
-    El plan gratuito de SerpApi son 250 búsquedas/mes y cada consulta gasta 3
-    (una por ventana de fechas). Así se queda en ~90 al mes.
+    El plan gratuito de SerpApi son 250 búsquedas/mes y cada consulta gasta una
+    por ventana de fechas. Con MAX_VENTANAS_OTAS=1 se queda en ~30 al mes.
     """
     ultimo = (datos.get("otas_actualizado") or "")[:10]
     return ultimo != sello.strftime("%Y-%m-%d")
+
+
+def _mejores_por_grupo(tarifas: list[dict], tope: int = 15) -> list[dict]:
+    """Una fila por combinación de duración y habitación.
+
+    Con 35 ventanas de fechas la tabla salían 20 filas casi idénticas: el mismo
+    precio por noche repetido para cada fecha de entrada posible. Agrupando se
+    ve lo que de verdad cambia —cuántas noches y qué habitación— sin dejar de
+    rastrear ninguna combinación.
+    """
+    mejores: dict[tuple, dict] = {}
+    for t in tarifas:
+        clave = (t["noches"], t["habitacion"])
+        actual = mejores.get(clave)
+        if actual is None or t["por_noche"] < actual["por_noche"]:
+            mejores[clave] = t
+    return sorted(mejores.values(), key=lambda t: t["por_noche"])[:tope]
 
 
 def main() -> int:
@@ -146,7 +163,7 @@ def main() -> int:
     datos["vuelos_abiertos"] = abiertos
     datos["referencia_noche"] = round(REFERENCIA_NOCHE, 2)
     datos["ultima_comprobacion"] = sello.strftime("%Y-%m-%d %H:%M")
-    datos["tarifas_actuales"] = sorted(validas, key=lambda t: t["por_noche"])[:20]
+    datos["tarifas_actuales"] = _mejores_por_grupo(validas)
 
     # --- avisos ------------------------------------------------------
     url_hotel = cfg.HOTEL_URL
