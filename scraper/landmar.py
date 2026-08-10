@@ -134,57 +134,6 @@ def _cabecera_ok(page: Page, entrada: date, salida: date) -> bool:
     )
 
 
-def _fijar_por_interfaz(page: Page, entrada: date, salida: date) -> bool:
-    """Plan B: conducir el calendario y el selector de ocupación a mano."""
-    meses = [
-        "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
-        "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE",
-    ]
-    objetivo = f"{meses[entrada.month - 1]} {entrada.year}"
-
-    try:
-        page.get_by_text("Entrada", exact=True).first.click(timeout=8000)
-        page.wait_for_timeout(800)
-
-        for _ in range(30):
-            if objetivo in page.locator("body").inner_text():
-                break
-            page.locator("a[title='Siguiente'], a:has-text('Siguiente')").first.click(timeout=5000)
-            page.wait_for_timeout(350)
-        else:
-            log.warning("No se alcanzó %s en el calendario", objetivo)
-            return False
-
-        _clic_dia(page, entrada)
-        page.wait_for_timeout(900)
-        _clic_dia(page, salida)
-        page.wait_for_timeout(900)
-
-        page.get_by_text("Ocupación", exact=True).first.click(timeout=8000)
-        page.wait_for_timeout(600)
-        selects = page.locator("select")
-        for i in range(selects.count()):
-            sel = selects.nth(i)
-            etiqueta = (sel.get_attribute("aria-label") or "") + (sel.get_attribute("name") or "")
-            if "kid" in etiqueta.lower() or "niñ" in etiqueta.lower() or "edad" in etiqueta.lower():
-                sel.select_option(str(cfg.EDAD_NINO))
-        page.get_by_role("button", name=re.compile("GUARDAR", re.I)).first.click(timeout=6000)
-        page.wait_for_timeout(1200)
-
-        page.get_by_role("button", name=re.compile("Repetir búsqueda", re.I)).first.click(timeout=8000)
-        page.wait_for_timeout(6000)
-        return True
-    except Exception as exc:  # noqa: BLE001
-        log.warning("Fallo conduciendo la interfaz: %s", exc)
-        return False
-
-
-def _clic_dia(page: Page, dia: date) -> None:
-    """Pulsa el número de día dentro del calendario abierto."""
-    celda = page.locator(f"td:not(.disabled):not(.off) >> text=/^{dia.day}$/").first
-    celda.click(timeout=6000)
-
-
 # --------------------------------------------------------------- parseo texto
 
 def _es_nombre_habitacion(lineas: list[str], i: int) -> bool:
