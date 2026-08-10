@@ -1,4 +1,10 @@
-"""Punto de entrada del rastreo. Lo que ejecuta GitHub Actions."""
+"""Punto de entrada del rastreo. Lo que ejecuta GitHub Actions.
+
+Se compara SIEMPRE por €/noche, no por total. Con la duración flexible (5 a 9
+noches) los totales no son comparables entre sí: una estancia de 5 noches sale
+más barata que una de 7 sin que el hotel haya bajado un céntimo. Comparar por
+total hacía que el histórico marcase "bajadas" que no existían.
+"""
 
 from __future__ import annotations
 
@@ -12,7 +18,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 from . import config as cfg
-from . import landmar, notify, report, vuelos, vuelos_amadeus
+from . import landmar, notify, report, vuelos
 
 RAIZ = Path(__file__).resolve().parent.parent
 HISTORICO = RAIZ / "data" / "historico.json"
@@ -23,6 +29,9 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 log = logging.getLogger("rastreo")
+
+# Referencia en €/noche: 1.987 € por 7 noches = 283,86 €/noche
+REFERENCIA_NOCHE = cfg.PRECIO_REFERENCIA / cfg.NOCHES_OBJETIVO
 
 
 def ahora_madrid() -> datetime:
@@ -47,8 +56,8 @@ def guardar_historico(datos: dict) -> None:
     )
 
 
-def rastrear() -> tuple[list[dict], bool, str, list[dict]]:
-    """Devuelve (tarifas, vuelos_abiertos, detalle_vuelos, ofertas_vuelos)."""
+def rastrear() -> tuple[list[dict], bool, str]:
+    """Devuelve (tarifas, vuelos_abiertos, detalle_vuelos)."""
     tarifas: list[dict] = []
     max_ventanas = int(os.environ.get("MAX_VENTANAS", "35"))
     ventanas = cfg.ventanas_validas()[:max_ventanas]
@@ -78,48 +87,35 @@ def rastrear() -> tuple[list[dict], bool, str, list[dict]]:
                 log.warning("Error en %s → %s: %s", entrada, salida, exc)
             time.sleep(cfg.PAUSA_ENTRE_BUSQUEDAS)
 
-        log.info("Comprobando apertura de vuelos")
-        base = cfg.NOCHE_OBLIGATORIA
-        abiertos, detalle = vuelos.venta_abierta(
-            page,
-            base.replace(day=2),
-            base.replace(day=9),
-        )
-        log.info("Vuelos abiertos: %s (%s)", abiertos, detalle)
-
         contexto.close()
         navegador.close()
 
-    # Si Amadeus está configurado, manda él: consulta el inventario real de las
-    # aerolíneas en vez de deducirlo del buscador de paquetes del hotel.
-    ofertas: list[dict] = []
-    if vuelos_amadeus.configurado():
-        log.info("Comprobando vuelos con Amadeus")
-        abiertos_am, detalle_am, ofertas = vuelos_amadeus.buscar()
-        abiertos, detalle = abiertos_am, detalle_am
-        log.info("Amadeus: %s (%s)", abiertos, detalle)
-    else:
-        log.info("Amadeus no configurado; se usa la detección indirecta")
+    # La detección de vuelos está desactivada: daba falsos positivos y no hay
+    # ninguna fuente automatizable mientras la venta no esté abierta.
+    abiertos, detalle = vuelos.venta_abierta(None, None, None)
 
-    return tarifas, abiertos, detalle, ofertas
+    return tarifas, abiertos, detalle
 
 
 def main() -> int:
     datos = cargar_historico()
-    tarifas, abiertos, detalle, ofertas_vuelos = rastrear()
+    tarifas, abiertos, detalle = rastrear()
 
     validas = [
         t for t in tarifas
         if t["cancelable"] and cfg.REGIMEN_TI.lower() in t["regimen"].lower()
     ]
-    mejor = min(validas, key=lambda t: t["total"]) if validas else None
+    # El mejor es el de menor precio POR NOCHE, no el de menor total.
+    mejor = min(validas, key=lambda t: t["por_noche"]) if validas else None
 
-    anterior = (datos.get("mejor_precio_historico") or {}).get("total") or cfg.PRECIO_REFERENCIA
+    historico = datos.get("mejor_precio_historico") or {}
+    anterior = historico.get("por_noche") or REFERENCIA_NOCHE
     vuelos_antes = datos.get("vuelos_abiertos", False)
 
     sello = ahora_madrid()
     datos["registros"].append({
         "fecha": sello.strftime("%Y-%m-%d %H:%M"),
+        "mejor_por_noche": mejor["por_noche"] if mejor else None,
         "mejor_total": mejor["total"] if mejor else None,
         "mejor_detalle": mejor,
         "tarifas_encontradas": len(validas),
@@ -127,9 +123,9 @@ def main() -> int:
         "detalle_vuelos": detalle,
     })
     datos["vuelos_abiertos"] = abiertos
-    datos["ofertas_vuelos"] = ofertas_vuelos[:10]
+    datos["referencia_noche"] = round(REFERENCIA_NOCHE, 2)
     datos["ultima_comprobacion"] = sello.strftime("%Y-%m-%d %H:%M")
-    datos["tarifas_actuales"] = sorted(validas, key=lambda t: t["total"])[:20]
+    datos["tarifas_actuales"] = sorted(validas, key=lambda t: t["por_noche"])[:20]
 
     # --- avisos ------------------------------------------------------
     url_hotel = cfg.HOTEL_URL
@@ -137,7 +133,7 @@ def main() -> int:
     if abiertos and not vuelos_antes:
         notify.enviar(notify.formatear_vuelos(detalle, url_hotel))
 
-    if mejor and mejor["total"] < anterior - 0.5:
+    if mejor and mejor["por_noche"] < anterior - 0.5:
         notify.enviar(notify.formatear_bajada(mejor, anterior, url_hotel))
         datos["mejor_precio_historico"] = mejor
     elif mejor and not datos.get("mejor_precio_historico"):
@@ -145,13 +141,12 @@ def main() -> int:
 
     # Resumen semanal (lunes por la mañana) aunque no haya novedades
     if sello.weekday() == 0 and sello.hour < 12:
-        notify.enviar(notify.formatear_resumen(
-            mejor, anterior, "abiertos ✅" if abiertos else "aún cerrados"
-        ))
+        notify.enviar(notify.formatear_resumen(mejor, anterior, detalle))
 
     guardar_historico(datos)
     report.generar(datos, RAIZ / "docs" / "index.html")
-    log.info("Listo. Mejor: %s", mejor["total"] if mejor else "sin datos")
+    log.info("Listo. Mejor: %s €/noche",
+             f"{mejor['por_noche']:.0f}" if mejor else "sin datos")
     return 0
 
 
