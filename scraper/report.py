@@ -43,6 +43,7 @@ td { padding:9px 10px; border-bottom:1px solid #f1ede7; }
 tr:last-child td { border-bottom:none; }
 .num { font-variant-numeric:tabular-nums; }
 .best { background:#f4f9f5; font-weight:650; }
+.nota { color:#8a8279; font-size:12px; margin:12px 0 0; }
 .chartbox { height:250px; position:relative; }
 a { color:#1f5f9e; text-decoration:none; }
 a:hover { text-decoration:underline; }
@@ -70,10 +71,16 @@ solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
 <h2>Evolución (€/noche)</h2>
 <div class="card chartbox"><canvas id="chart"></canvas></div>
 
-<h2>Mejores opciones ahora</h2>
+<h2>Web oficial del hotel · mejores opciones</h2>
 <div class="card"><table id="t"><thead><tr>
 <th>Entrada</th><th>Salida</th><th>Noches</th><th>Habitación</th>
 <th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table></div>
+
+<h2>En otras webs (vía Google Hotels)</h2>
+<div class="card"><table id="o"><thead><tr>
+<th>Entrada</th><th>Salida</th><th>Noches</th><th>Web</th>
+<th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table>
+<p class="nota" id="oNota"></p></div>
 
 <footer>Actualizado automáticamente por GitHub Actions ·
 <a href="https://www.landmarhotels.com/es/landmar-costa-los-gigantes.html">web del hotel</a>
@@ -116,10 +123,33 @@ const tb = document.querySelector("#t tbody");
     '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(t.por_noche) + '</td>' +
     '<td class="num">' + eur(t.total) + '</td>';
 });
-if (!(DATA.tarifas_actuales || []).length) {
+if (!tb.rows.length) {
   tb.insertRow().innerHTML = '<td colspan="6" style="color:#8a8279;text-align:center;' +
     'padding:24px">Sin tarifas leídas en la última pasada.</td>';
 }
+
+const ob = document.querySelector("#o tbody");
+(DATA.ofertas_otas || []).forEach(v => {
+  (v.fuentes || []).forEach((f, i) => {
+    const tr = ob.insertRow();
+    tr.innerHTML = '<td class="num">' + v.entrada + '</td>' +
+      '<td class="num">' + v.salida + '</td>' +
+      '<td class="num">' + v.noches + '</td>' +
+      '<td>' + f.web + '</td>' +
+      '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(f.por_noche) + '</td>' +
+      '<td class="num">' + eur(f.total) + '</td>';
+  });
+});
+if (!ob.rows.length) {
+  ob.insertRow().innerHTML = '<td colspan="6" style="color:#8a8279;text-align:center;' +
+    'padding:24px">' + (DATA.otas_actualizado
+      ? 'Sin precios de otras webs en la última consulta.'
+      : 'Pendiente de configurar el secreto SERPAPI_KEY.') + '</td>';
+}
+document.getElementById("oNota").textContent = DATA.otas_actualizado
+  ? "Consultado el " + DATA.otas_actualizado + " · una vez al día. Precios orientativos" +
+    " de Google Hotels; confírmalos en la web correspondiente antes de reservar."
+  : "";
 
 const pts = (DATA.registros || []).filter(r => r.mejor_por_noche != null);
 if (pts.length) {
@@ -146,6 +176,8 @@ def generar(datos: dict, destino: Path) -> None:
         "ultima_comprobacion": datos.get("ultima_comprobacion"),
         "vuelos_abiertos": datos.get("vuelos_abiertos", False),
         "tarifas_actuales": datos.get("tarifas_actuales", []),
+        "ofertas_otas": datos.get("ofertas_otas", []),
+        "otas_actualizado": datos.get("otas_actualizado"),
         "registros": [
             {"fecha": r["fecha"],
              "mejor_por_noche": r.get("mejor_por_noche"),
