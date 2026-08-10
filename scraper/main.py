@@ -18,7 +18,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 from . import config as cfg
-from . import landmar, notify, report, vuelos
+from . import landmar, notify, otas, report, vuelos
 
 RAIZ = Path(__file__).resolve().parent.parent
 HISTORICO = RAIZ / "data" / "historico.json"
@@ -90,9 +90,7 @@ def rastrear() -> tuple[list[dict], bool, str]:
         contexto.close()
         navegador.close()
 
-    # La detección de vuelos está desactivada: daba falsos positivos y no hay
-    # ninguna fuente automatizable mientras la venta no esté abierta.
-    abiertos, detalle = vuelos.venta_abierta(None, None, None)
+    abiertos, detalle = vuelos.venta_abierta()
 
     return tarifas, abiertos, detalle
 
@@ -113,6 +111,19 @@ def main() -> int:
     vuelos_antes = datos.get("vuelos_abiertos", False)
 
     sello = ahora_madrid()
+
+    # Comparativa con otras webs (Booking, Expedia...) vía Google Hotels.
+    # Solo en la pasada de la mañana: el plan gratuito de SerpApi son 250
+    # búsquedas/mes y así gastamos 3 al día (~90 al mes).
+    if otas.configurado() and sello.hour < 12:
+        log.info("Consultando precios en otras webs")
+        encontradas = otas.buscar()
+        if encontradas:
+            datos["ofertas_otas"] = encontradas
+            datos["otas_actualizado"] = sello.strftime("%Y-%m-%d %H:%M")
+    elif not otas.configurado():
+        log.info("Sin SERPAPI_KEY: no se comparan otras webs")
+
     datos["registros"].append({
         "fecha": sello.strftime("%Y-%m-%d %H:%M"),
         "mejor_por_noche": mejor["por_noche"] if mejor else None,
