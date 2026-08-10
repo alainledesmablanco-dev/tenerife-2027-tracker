@@ -17,11 +17,13 @@ EDAD_NINO = 5
 # Noche que hay que pasar sí o sí en el hotel (fiesta del hotel)
 NOCHE_OBLIGATORIA = date(2027, 8, 8)
 
-# Solo estancias de 7 noches. Antes se rastreaban de 5 a 9 (35 combinaciones);
-# ahora son 7 y cada pasada tarda unos 2 minutos en vez de 9.
+# Se rastrean estancias de 5 a 9 noches (35 combinaciones de fechas). Las de 8
+# y 9 noches salen más baratas por noche, así que merece la pena mirarlas. Para
+# que el panel no se llene de filas repetidas, la tabla agrupa por duración y
+# tipo de habitación en main.py.
 NOCHES_OBJETIVO = 7
-NOCHES_MIN = 7
-NOCHES_MAX = 7
+NOCHES_MIN = 5
+NOCHES_MAX = 9
 
 # Filtros duros: si una tarifa no los cumple, no entra en el informe
 SOLO_CANCELABLE = True
