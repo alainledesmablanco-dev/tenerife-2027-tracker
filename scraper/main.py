@@ -95,6 +95,16 @@ def rastrear() -> tuple[list[dict], bool, str]:
     return tarifas, abiertos, detalle
 
 
+def _toca_otas(datos: dict, sello: datetime) -> bool:
+    """Una sola consulta de OTAs por día natural, la primera pasada que toque.
+
+    El plan gratuito de SerpApi son 250 búsquedas/mes y cada consulta gasta 3
+    (una por ventana de fechas). Así se queda en ~90 al mes.
+    """
+    ultimo = (datos.get("otas_actualizado") or "")[:10]
+    return ultimo != sello.strftime("%Y-%m-%d")
+
+
 def main() -> int:
     datos = cargar_historico()
     tarifas, abiertos, detalle = rastrear()
@@ -113,16 +123,16 @@ def main() -> int:
     sello = ahora_madrid()
 
     # Comparativa con otras webs (Booking, Expedia...) vía Google Hotels.
-    # Solo en la pasada de la mañana: el plan gratuito de SerpApi son 250
-    # búsquedas/mes y así gastamos 3 al día (~90 al mes).
-    if otas.configurado() and sello.hour < 12:
+    if not otas.configurado():
+        log.info("Sin SERPAPI_KEY: no se comparan otras webs")
+    elif _toca_otas(datos, sello):
         log.info("Consultando precios en otras webs")
         encontradas = otas.buscar()
         if encontradas:
             datos["ofertas_otas"] = encontradas
             datos["otas_actualizado"] = sello.strftime("%Y-%m-%d %H:%M")
-    elif not otas.configurado():
-        log.info("Sin SERPAPI_KEY: no se comparan otras webs")
+    else:
+        log.info("Las OTAs ya se consultaron hoy; se omite")
 
     datos["registros"].append({
         "fecha": sello.strftime("%Y-%m-%d %H:%M"),
