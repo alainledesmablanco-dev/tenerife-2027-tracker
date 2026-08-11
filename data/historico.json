@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": false,
-  "ultima_comprobacion": "2026-08-11 13:52",
+  "ultima_comprobacion": "2026-08-11 23:51",
   "tarifas_actuales": [],
   "registros": [
     {
@@ -229,9 +229,18 @@
       "tarifas_encontradas": 0,
       "vuelos_abiertos": false,
       "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"
+    },
+    {
+      "fecha": "2026-08-11 23:51",
+      "mejor_por_noche": null,
+      "mejor_total": null,
+      "mejor_detalle": null,
+      "tarifas_encontradas": 0,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"
     }
   ],
   "ofertas_vuelos": [],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-08-11 13:52"
+  "otas_comprobado": "2026-08-11 23:51"
 }
