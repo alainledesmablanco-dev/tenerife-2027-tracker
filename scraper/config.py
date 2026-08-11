@@ -1,4 +1,14 @@
-"""Configuración del rastreo. Todo lo ajustable vive aquí."""
+"""Configuración del rastreo. Todo lo ajustable vive aquí.
+
+⚠️ PRUEBA TEMPORAL ⚠️
+NOCHE_OBLIGATORIA está puesta en diciembre de 2026 para comprobar que la
+comparativa con otras webs (Google Hotels vía SerpApi) funciona de verdad.
+Con las fechas reales de agosto de 2027 no se puede probar: Google solo
+publica precios con unos 11 meses de antelación.
+
+Para volver a las fechas reales basta con cambiar una línea:
+    NOCHE_OBLIGATORIA = date(2027, 8, 8)
+"""
 
 from datetime import date, timedelta
 
@@ -15,12 +25,13 @@ NINOS = 1
 EDAD_NINO = 5
 
 # Noche que hay que pasar sí o sí en el hotel (fiesta del hotel)
-NOCHE_OBLIGATORIA = date(2027, 8, 8)
+# REAL: date(2027, 8, 8)  ·  PRUEBA: date(2026, 12, 8)
+NOCHE_OBLIGATORIA = date(2026, 12, 8)
 
 # Se rastrean estancias de 5 a 9 noches (35 combinaciones de fechas). Las de 8
-# y 9 noches salen más baratas por noche, así que merece la pena mirarlas. Para
-# que el panel no se llene de filas repetidas, la tabla agrupa por duración y
-# tipo de habitación en main.py.
+# y 9 noches suelen salir más baratas por noche, así que merece la pena
+# mirarlas. Para que el panel no se llene de filas repetidas, la tabla agrupa
+# por duración y tipo de habitación en main.py.
 NOCHES_OBJETIVO = 7
 NOCHES_MIN = 5
 NOCHES_MAX = 9
@@ -60,14 +71,16 @@ def ventanas_validas() -> list[tuple[date, date, int]]:
 
     Devuelve (entrada, salida, noches) ordenado por cercanía a NOCHES_OBJETIVO,
     de modo que las estancias más parecidas a la ideal se consultan primero.
+
+    Por construcción la entrada nunca cae a más de NOCHES_MAX-1 días antes de
+    la noche obligatoria, así que no hace falta filtrar por mes (antes había un
+    filtro fijo a agosto que dejaba la lista vacía con cualquier otra fecha).
     """
     ventanas = []
     for noches in range(NOCHES_MIN, NOCHES_MAX + 1):
         for offset in range(noches):
             entrada = NOCHE_OBLIGATORIA - timedelta(days=offset)
             salida = entrada + timedelta(days=noches)
-            # la noche obligatoria queda cubierta por construcción
-            if entrada.month == 8 or (entrada.month == 7 and entrada.day >= 25):
-                ventanas.append((entrada, salida, noches))
+            ventanas.append((entrada, salida, noches))
     ventanas.sort(key=lambda v: (abs(v[2] - NOCHES_OBJETIVO), v[0]))
     return ventanas
