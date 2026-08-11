@@ -24,19 +24,29 @@ h2 { font-size:13px; text-transform:uppercase; letter-spacing:.07em;
 .banner { border-left:3px solid #c9803a; background:#fdf6ee; padding:13px 16px;
   border-radius:6px; margin-bottom:22px; font-size:14px; }
 .banner.ok { border-color:#3f8f52; background:#f0f7f1; }
-table { width:100%; border-collapse:collapse; font-size:13.5px; }
+/* En móvil seis columnas no caben: la tabla se desliza en horizontal
+   dentro de su tarjeta en vez de cortarse. */
+.tabla { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+table { width:100%; min-width:540px; border-collapse:collapse; font-size:13.5px; }
 th { text-align:left; font-weight:600; color:#7a736a; font-size:11.5px;
   text-transform:uppercase; letter-spacing:.05em; padding:8px 10px;
-  border-bottom:1px solid #e8e3dc; }
-td { padding:9px 10px; border-bottom:1px solid #f1ede7; }
+  border-bottom:1px solid #e8e3dc; white-space:nowrap; }
+td { padding:9px 10px; border-bottom:1px solid #f1ede7; white-space:nowrap; }
 tr:last-child td { border-bottom:none; }
 .num { font-variant-numeric:tabular-nums; }
 .best { background:#f4f9f5; font-weight:650; }
-.nota { color:#8a8279; font-size:12px; margin:12px 0 0; }
+.nota { color:#8a8279; font-size:12px; margin:12px 0 0; white-space:normal; }
 .chartbox { height:250px; position:relative; }
 a { color:#1f5f9e; text-decoration:none; }
 a:hover { text-decoration:underline; }
 footer { margin-top:30px; color:#9a938a; font-size:12px; }
+@media (max-width:700px) {
+  body { padding:14px; }
+  h1 { font-size:19px; }
+  .card { padding:12px; }
+  .kpi .value { font-size:22px; }
+  th, td { padding:7px 8px; }
+}
 </style>
 </head>
 <body>
@@ -61,14 +71,14 @@ solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
 <div class="card chartbox"><canvas id="chart"></canvas></div>
 
 <h2>Web oficial del hotel · mejores opciones</h2>
-<div class="card"><table id="t"><thead><tr>
+<div class="card"><div class="tabla"><table id="t"><thead><tr>
 <th>Entrada</th><th>Salida</th><th>Noches</th><th>Habitación</th>
-<th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table></div>
+<th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table></div></div>
 
 <h2>En otras webs (vía Google Hotels)</h2>
-<div class="card"><table id="o"><thead><tr>
+<div class="card"><div class="tabla"><table id="o"><thead><tr>
 <th>Entrada</th><th>Salida</th><th>Noches</th><th>Web</th>
-<th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table>
+<th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table></div>
 <p class="nota" id="oNota"></p></div>
 
 <footer>Actualizado automáticamente por GitHub Actions ·
@@ -76,7 +86,7 @@ solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
 </footer>
 
 <script>
-const DATA = {"mejor_precio_historico": {"entrada": "2027-08-01", "salida": "2027-08-09", "noches": 8, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2147.0, "por_noche": 268.0, "antes": 2526.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, "ultima_comprobacion": "2026-08-11 09:16", "vuelos_abiertos": false, "tarifas_actuales": [{"entrada": "2027-08-01", "salida": "2027-08-09", "noches": 8, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2148.0, "por_noche": 268.0, "antes": 2528.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-07-31", "salida": "2027-08-09", "noches": 9, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2415.0, "por_noche": 268.0, "antes": 2842.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-01", "salida": "2027-08-09", "noches": 8, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 2265.0, "por_noche": 283.0, "antes": 2665.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-07-31", "salida": "2027-08-09", "noches": 9, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 2547.0, "por_noche": 283.0, "antes": 2997.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-02", "salida": "2027-08-09", "noches": 7, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 1991.0, "por_noche": 284.0, "antes": 2213.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-03", "salida": "2027-08-09", "noches": 6, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 1708.0, "por_noche": 284.0, "antes": 1898.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-04", "salida": "2027-08-09", "noches": 5, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 1424.0, "por_noche": 284.0, "antes": 1583.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-01", "salida": "2027-08-09", "noches": 8, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 2379.0, "por_noche": 297.0, "antes": 2799.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-07-31", "salida": "2027-08-09", "noches": 9, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 2675.0, "por_noche": 297.0, "antes": 3148.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-02", "salida": "2027-08-09", "noches": 7, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 2098.0, "por_noche": 299.0, "antes": 2332.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-03", "salida": "2027-08-09", "noches": 6, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 1800.0, "por_noche": 300.0, "antes": 2000.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-04", "salida": "2027-08-09", "noches": 5, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 1501.0, "por_noche": 300.0, "antes": 1668.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-05", "salida": "2027-08-12", "noches": 7, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 2204.0, "por_noche": 314.0, "antes": 2449.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-06", "salida": "2027-08-12", "noches": 6, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 1889.0, "por_noche": 314.0, "antes": 2099.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-04", "salida": "2027-08-09", "noches": 5, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 1575.0, "por_noche": 315.0, "antes": 1751.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}], "ofertas_otas": [], "otas_actualizado": null, "registros": [{"fecha": "2026-08-09 00:45", "mejor_por_noche": null, "mejor_total": 1987.0, "detalle_vuelos": "El paquete rechaza BIO: la búsqueda aplica restricciones"}, {"fecha": "2026-08-09 02:12", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "Respuesta ambigua del buscador de paquetes"}, {"fecha": "2026-08-09 02:24", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "El paquete vuelo+hotel ya devuelve resultados con origen Bilbao"}, {"fecha": "2026-08-09 20:35", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "El paquete vuelo+hotel ya devuelve resultados con origen Bilbao"}, {"fecha": "2026-08-09 23:56", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 00:10", "mejor_por_noche": null, "mejor_total": 1420.0, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 09:38", "mejor_por_noche": null, "mejor_total": 1419.0, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 14:17", "mejor_por_noche": 268.0, "mejor_total": 2147.0, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 14:43", "mejor_por_noche": 268.0, "mejor_total": 2147.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-10 20:52", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 00:06", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 00:21", "mejor_por_noche": 284.0, "mejor_total": 1991.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 09:16", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}]};
+const DATA = {"mejor_precio_historico": {"entrada": "2027-08-01", "salida": "2027-08-09", "noches": 8, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2147.0, "por_noche": 268.0, "antes": 2526.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, "ultima_comprobacion": "2026-08-11 13:52", "vuelos_abiertos": false, "tarifas_actuales": [], "ofertas_otas": [], "otas_actualizado": null, "otas_comprobado": "2026-08-11 13:52", "registros": [{"fecha": "2026-08-09 00:45", "mejor_por_noche": null, "mejor_total": 1987.0, "detalle_vuelos": "El paquete rechaza BIO: la búsqueda aplica restricciones"}, {"fecha": "2026-08-09 02:12", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "Respuesta ambigua del buscador de paquetes"}, {"fecha": "2026-08-09 02:24", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "El paquete vuelo+hotel ya devuelve resultados con origen Bilbao"}, {"fecha": "2026-08-09 20:35", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "El paquete vuelo+hotel ya devuelve resultados con origen Bilbao"}, {"fecha": "2026-08-09 23:56", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 00:10", "mejor_por_noche": null, "mejor_total": 1420.0, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 09:38", "mejor_por_noche": null, "mejor_total": 1419.0, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 14:17", "mejor_por_noche": 268.0, "mejor_total": 2147.0, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 14:43", "mejor_por_noche": 268.0, "mejor_total": 2147.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-10 20:52", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 00:06", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 00:21", "mejor_por_noche": 284.0, "mejor_total": 1991.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 09:16", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 13:52", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}]};
 const eur = n => n == null ? "—" :
   new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n);
 
@@ -129,16 +139,26 @@ const ob = document.querySelector("#o tbody");
       '<td class="num">' + eur(f.total) + '</td>';
   });
 });
+// Tres estados distintos, que antes se confundían en uno solo.
+let notaOtas = "";
 if (!ob.rows.length) {
+  let msg;
+  if (!DATA.otas_comprobado) {
+    msg = 'Pendiente de configurar el secreto SERPAPI_KEY.';
+  } else {
+    msg = 'Google Hotels todavía no publica precios para estas fechas.';
+    notaOtas = "Su calendario llega a unos 11 meses vista, así que agosto de 2027" +
+      " entrará hacia septiembre de 2026. Se reintenta cada día. Última" +
+      " comprobación: " + DATA.otas_comprobado + ".";
+  }
   ob.insertRow().innerHTML = '<td colspan="6" style="color:#8a8279;text-align:center;' +
-    'padding:24px">' + (DATA.otas_actualizado
-      ? 'Sin precios de otras webs en la última consulta.'
-      : 'Pendiente de configurar el secreto SERPAPI_KEY.') + '</td>';
+    'padding:24px;white-space:normal">' + msg + '</td>';
+} else {
+  notaOtas = "Consultado el " + DATA.otas_actualizado + " · una vez al día." +
+    " Precios orientativos de Google Hotels; confírmalos en la web" +
+    " correspondiente antes de reservar.";
 }
-document.getElementById("oNota").textContent = DATA.otas_actualizado
-  ? "Consultado el " + DATA.otas_actualizado + " · una vez al día. Precios orientativos" +
-    " de Google Hotels; confírmalos en la web correspondiente antes de reservar."
-  : "";
+document.getElementById("oNota").textContent = notaOtas;
 
 const pts = (DATA.registros || []).filter(r => r.mejor_por_noche != null);
 if (pts.length) {
