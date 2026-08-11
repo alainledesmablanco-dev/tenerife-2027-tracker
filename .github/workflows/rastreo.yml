@@ -54,10 +54,21 @@ jobs:
           git add data/historico.json docs/index.html
           if git diff --staged --quiet; then
             echo "Sin cambios que guardar"
-          else
-            git commit -m "Rastreo $(date -u +'%Y-%m-%d %H:%M') UTC"
-            git push
+            exit 0
           fi
+          git commit -m "Rastreo $(date -u +'%Y-%m-%d %H:%M') UTC"
+          # El job hace checkout al empezar y tarda ~10 minutos. Si en ese rato
+          # se empuja cualquier cosa a main, el push de aquí sale rechazado y se
+          # pierde la pasada entera. Se reintenta rebasando sobre lo que haya.
+          for intento in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rechazado; rebasando sobre origin/main (intento $intento)"
+            git pull --rebase origin main
+          done
+          echo "No se pudo guardar el histórico tras 3 intentos"
+          exit 1
 
       - name: Subir capturas si algo falló
         if: failure()
