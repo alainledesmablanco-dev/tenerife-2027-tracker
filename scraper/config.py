@@ -15,7 +15,14 @@ NINOS = 1
 EDAD_NINO = 5
 
 # Noche que hay que pasar sí o sí en el hotel (fiesta del hotel)
-NOCHE_OBLIGATORIA = date(2027, 8, 8)
+#
+# PRUEBA EN CURSO (12-ago-2026): temporalmente puesto en septiembre de 2026
+# para validar con datos reales las dos partes que no se pueden comprobar con
+# agosto de 2027: la lectura de Google Flights y la de Google Hotels. Ninguna
+# de las dos publica nada a 12 meses vista, así que con las fechas de verdad
+# es imposible saber si el código funciona o si simplemente no hay datos.
+# VALOR REAL AL QUE HAY QUE VOLVER: date(2027, 8, 8)
+NOCHE_OBLIGATORIA = date(2026, 9, 8)
 
 # Se rastrean estancias de 5 a 9 noches (35 combinaciones de fechas). Las de 8
 # y 9 noches suelen salir más baratas por noche, así que merece la pena
