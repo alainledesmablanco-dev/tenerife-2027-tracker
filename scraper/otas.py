@@ -1,14 +1,3 @@
-    props = datos.get("properties") or []
-    hotel = _nuestro_hotel(props)
-    if not hotel:
-        # Log detallado a propósito: "no aparece" puede significar que Google
-        # devolvió cero propiedades o que devolvió varias y ninguna casaba con
-        # el filtro de nombre. Son causas distintas y hay que poder verlas.
-        nombres = " | ".join((p.get("name") or "sin nombre") for p in props[:6])
-        log.info("OTAs %s → %s: el hotel no está entre las %d propiedades "
-                 "devueltas por Google. Nombres: %s",
-                 entrada, salida, len(props), nombres or "(lista vacía)")
-        return None
 """Precios del hotel en otras webs (Booking, Expedia, Agoda...) vía SerpApi.
 
 Google Hotels ya agrega los precios de las principales OTAs para un hotel y
@@ -19,9 +8,8 @@ se consulta Google Hotels y se lee su comparativa.
 Presupuesto
 -----------
 El plan gratuito de SerpApi son 250 búsquedas/mes. Este módulo se ejecuta una
-vez al día sobre las 3 mejores ventanas de fechas: 3 × 30 = 90 al mes. El
-rastreo del hotel sigue corriendo 2 veces al día, pero la comparativa de OTAs
-solo en la pasada de la mañana.
+vez al día y, con MAX_VENTANAS_OTAS=1, gasta ~30 al mes. El rastreo del hotel
+sigue corriendo 2 veces al día.
 
 Secreto que usa:
     SERPAPI_KEY    clave de serpapi.com (plan gratuito)
@@ -106,12 +94,19 @@ def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | N
         return None
 
     if datos.get("error"):
-        log.warning("OTAs: %s", datos["error"])
+        log.warning("OTAs: la API devuelve error: %s", datos["error"])
         return None
 
-    hotel = _nuestro_hotel(datos.get("properties") or [])
+    props = datos.get("properties") or []
+    hotel = _nuestro_hotel(props)
     if not hotel:
-        log.info("OTAs: el hotel no aparece para %s → %s", entrada, salida)
+        # Log detallado a propósito: "no aparece" puede significar que Google
+        # devolvió cero propiedades o que devolvió varias y ninguna casaba con
+        # el filtro de nombre. Son causas distintas y hay que poder verlas.
+        nombres = " | ".join((p.get("name") or "sin nombre") for p in props[:6])
+        log.info("OTAs %s → %s: el hotel no está entre las %d propiedades "
+                 "devueltas. Nombres: %s",
+                 entrada, salida, len(props), nombres or "(lista vacía)")
         return None
 
     total = _extraer(hotel.get("total_rate"))
@@ -121,7 +116,8 @@ def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | N
     if por_noche is None and total is not None:
         por_noche = round(total / noches, 2) if noches else None
     if total is None:
-        log.info("OTAs: sin precio para %s → %s", entrada, salida)
+        log.info("OTAs: encontrado '%s' pero sin precio para %s → %s",
+                 hotel.get("name"), entrada, salida)
         return None
 
     # Desglose por web. Google da el precio por noche de cada fuente; el total
