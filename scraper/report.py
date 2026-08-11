@@ -35,19 +35,29 @@ h2 { font-size:13px; text-transform:uppercase; letter-spacing:.07em;
 .banner { border-left:3px solid #c9803a; background:#fdf6ee; padding:13px 16px;
   border-radius:6px; margin-bottom:22px; font-size:14px; }
 .banner.ok { border-color:#3f8f52; background:#f0f7f1; }
-table { width:100%; border-collapse:collapse; font-size:13.5px; }
+/* En móvil seis columnas no caben: la tabla se desliza en horizontal
+   dentro de su tarjeta en vez de cortarse. */
+.tabla { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+table { width:100%; min-width:540px; border-collapse:collapse; font-size:13.5px; }
 th { text-align:left; font-weight:600; color:#7a736a; font-size:11.5px;
   text-transform:uppercase; letter-spacing:.05em; padding:8px 10px;
-  border-bottom:1px solid #e8e3dc; }
-td { padding:9px 10px; border-bottom:1px solid #f1ede7; }
+  border-bottom:1px solid #e8e3dc; white-space:nowrap; }
+td { padding:9px 10px; border-bottom:1px solid #f1ede7; white-space:nowrap; }
 tr:last-child td { border-bottom:none; }
 .num { font-variant-numeric:tabular-nums; }
 .best { background:#f4f9f5; font-weight:650; }
-.nota { color:#8a8279; font-size:12px; margin:12px 0 0; }
+.nota { color:#8a8279; font-size:12px; margin:12px 0 0; white-space:normal; }
 .chartbox { height:250px; position:relative; }
 a { color:#1f5f9e; text-decoration:none; }
 a:hover { text-decoration:underline; }
 footer { margin-top:30px; color:#9a938a; font-size:12px; }
+@media (max-width:700px) {
+  body { padding:14px; }
+  h1 { font-size:19px; }
+  .card { padding:12px; }
+  .kpi .value { font-size:22px; }
+  th, td { padding:7px 8px; }
+}
 </style>
 </head>
 <body>
@@ -72,14 +82,14 @@ solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
 <div class="card chartbox"><canvas id="chart"></canvas></div>
 
 <h2>Web oficial del hotel · mejores opciones</h2>
-<div class="card"><table id="t"><thead><tr>
+<div class="card"><div class="tabla"><table id="t"><thead><tr>
 <th>Entrada</th><th>Salida</th><th>Noches</th><th>Habitación</th>
-<th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table></div>
+<th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table></div></div>
 
 <h2>En otras webs (vía Google Hotels)</h2>
-<div class="card"><table id="o"><thead><tr>
+<div class="card"><div class="tabla"><table id="o"><thead><tr>
 <th>Entrada</th><th>Salida</th><th>Noches</th><th>Web</th>
-<th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table>
+<th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table></div>
 <p class="nota" id="oNota"></p></div>
 
 <footer>Actualizado automáticamente por GitHub Actions ·
@@ -140,16 +150,26 @@ const ob = document.querySelector("#o tbody");
       '<td class="num">' + eur(f.total) + '</td>';
   });
 });
+// Tres estados distintos, que antes se confundían en uno solo.
+let notaOtas = "";
 if (!ob.rows.length) {
+  let msg;
+  if (!DATA.otas_comprobado) {
+    msg = 'Pendiente de configurar el secreto SERPAPI_KEY.';
+  } else {
+    msg = 'Google Hotels todavía no publica precios para estas fechas.';
+    notaOtas = "Su calendario llega a unos 11 meses vista, así que agosto de 2027" +
+      " entrará hacia septiembre de 2026. Se reintenta cada día. Última" +
+      " comprobación: " + DATA.otas_comprobado + ".";
+  }
   ob.insertRow().innerHTML = '<td colspan="6" style="color:#8a8279;text-align:center;' +
-    'padding:24px">' + (DATA.otas_actualizado
-      ? 'Sin precios de otras webs en la última consulta.'
-      : 'Pendiente de configurar el secreto SERPAPI_KEY.') + '</td>';
+    'padding:24px;white-space:normal">' + msg + '</td>';
+} else {
+  notaOtas = "Consultado el " + DATA.otas_actualizado + " · una vez al día." +
+    " Precios orientativos de Google Hotels; confírmalos en la web" +
+    " correspondiente antes de reservar.";
 }
-document.getElementById("oNota").textContent = DATA.otas_actualizado
-  ? "Consultado el " + DATA.otas_actualizado + " · una vez al día. Precios orientativos" +
-    " de Google Hotels; confírmalos en la web correspondiente antes de reservar."
-  : "";
+document.getElementById("oNota").textContent = notaOtas;
 
 const pts = (DATA.registros || []).filter(r => r.mejor_por_noche != null);
 if (pts.length) {
@@ -178,6 +198,7 @@ def generar(datos: dict, destino: Path) -> None:
         "tarifas_actuales": datos.get("tarifas_actuales", []),
         "ofertas_otas": datos.get("ofertas_otas", []),
         "otas_actualizado": datos.get("otas_actualizado"),
+        "otas_comprobado": datos.get("otas_comprobado"),
         "registros": [
             {"fecha": r["fecha"],
              "mejor_por_noche": r.get("mejor_por_noche"),
