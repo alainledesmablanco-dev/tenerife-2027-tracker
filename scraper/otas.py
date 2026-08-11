@@ -5,11 +5,22 @@ unas fechas concretas. SerpApi expone ese resultado como API, así que en vez de
 scrapear Booking (bloqueado desde IPs de centro de datos y contra sus términos)
 se consulta Google Hotels y se lee su comparativa.
 
+Por qué se busca por zona y no por el nombre del hotel
+-----------------------------------------------------
+La primera versión consultaba "Landmar Costa Los Gigantes Tenerife" y devolvía
+SIEMPRE cero propiedades, sin error de la API. El motivo: cuando la búsqueda
+identifica un hotel concreto, Google no devuelve un listado sino la ficha de
+ese hotel, y en ese modo el campo `properties` viene vacío.
+
+La solución es buscar por zona y localizar nuestro hotel entre los resultados.
+Como no está garantizado qué formulación funciona mejor, se prueban varias en
+orden y se registra cuál dio resultados, para poder fijarla más adelante.
+
 Presupuesto
 -----------
-El plan gratuito de SerpApi son 250 búsquedas/mes. Este módulo se ejecuta una
-vez al día y, con MAX_VENTANAS_OTAS=1, gasta ~30 al mes. El rastreo del hotel
-sigue corriendo 2 veces al día.
+El plan gratuito de SerpApi son 250 búsquedas/mes. Con MAX_VENTANAS_OTAS=1 y
+como mucho 3 consultas de reserva, el tope son 3 al día ≈ 90 al mes. En cuanto
+una consulta localiza el hotel se corta: las siguientes no se lanzan.
 
 Secreto que usa:
     SERPAPI_KEY    clave de serpapi.com (plan gratuito)
@@ -28,7 +39,15 @@ from . import config as cfg
 log = logging.getLogger(__name__)
 
 ENDPOINT = "https://serpapi.com/search.json"
-CONSULTA = "Landmar Costa Los Gigantes Tenerife"
+
+# Se prueban en orden hasta que una localice el hotel. De zona pequeña a zona
+# grande, para que salga lo más arriba posible entre los resultados.
+CONSULTAS = (
+    "hoteles en Puerto de Santiago Tenerife",
+    "hoteles en Los Gigantes Tenerife",
+    "hoteles en Santiago del Teide Tenerife",
+)
+
 # Para identificar nuestro hotel entre los resultados: todas estas palabras
 # deben aparecer en el nombre devuelto por Google.
 CLAVES_NOMBRE = ("landmar", "gigantes")
@@ -55,10 +74,11 @@ def _nuestro_hotel(propiedades: list[dict]) -> dict | None:
     return None
 
 
-def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | None:
+def _pedir(consulta: str, clave: str, entrada: date, salida: date) -> list[dict] | None:
+    """Una llamada a la API. Devuelve la lista de propiedades, o None si falló."""
     params = {
         "engine": "google_hotels",
-        "q": CONSULTA,
+        "q": consulta,
         "check_in_date": entrada.isoformat(),
         "check_out_date": salida.isoformat(),
         "adults": cfg.ADULTOS,
@@ -74,7 +94,7 @@ def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | N
     try:
         r = requests.get(ENDPOINT, params=params, timeout=TIMEOUT)
     except Exception as exc:  # noqa: BLE001
-        log.warning("OTAs: fallo de red en %s → %s (%s)", entrada, salida, exc)
+        log.warning("OTAs: fallo de red con '%s' (%s)", consulta, exc)
         return None
 
     if r.status_code == 401:
@@ -84,29 +104,41 @@ def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | N
         log.warning("OTAs: cuota de SerpApi agotada (429)")
         return None
     if r.status_code >= 400:
-        log.warning("OTAs: HTTP %s en %s → %s", r.status_code, entrada, salida)
+        log.warning("OTAs: HTTP %s con '%s'", r.status_code, consulta)
         return None
 
     try:
         datos = r.json()
     except ValueError:
-        log.warning("OTAs: respuesta no es JSON en %s → %s", entrada, salida)
+        log.warning("OTAs: respuesta no es JSON con '%s'", consulta)
         return None
 
     if datos.get("error"):
-        log.warning("OTAs: la API devuelve error: %s", datos["error"])
+        log.warning("OTAs: la API devuelve error con '%s': %s", consulta, datos["error"])
         return None
 
-    props = datos.get("properties") or []
-    hotel = _nuestro_hotel(props)
+    return datos.get("properties") or []
+
+
+def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | None:
+    hotel = None
+    for consulta in CONSULTAS:
+        props = _pedir(consulta, clave, entrada, salida)
+        if props is None:
+            # Error de red o de la API: no tiene sentido gastar más consultas.
+            return None
+        log.info("OTAs '%s' → %d propiedades", consulta, len(props))
+        if not props:
+            continue
+        hotel = _nuestro_hotel(props)
+        if hotel:
+            log.info("OTAs: hotel localizado con la consulta '%s'", consulta)
+            break
+        nombres = " | ".join((p.get("name") or "?") for p in props[:6])
+        log.info("OTAs: no está entre los resultados. Primeros: %s", nombres)
+
     if not hotel:
-        # Log detallado a propósito: "no aparece" puede significar que Google
-        # devolvió cero propiedades o que devolvió varias y ninguna casaba con
-        # el filtro de nombre. Son causas distintas y hay que poder verlas.
-        nombres = " | ".join((p.get("name") or "sin nombre") for p in props[:6])
-        log.info("OTAs %s → %s: el hotel no está entre las %d propiedades "
-                 "devueltas. Nombres: %s",
-                 entrada, salida, len(props), nombres or "(lista vacía)")
+        log.info("OTAs %s → %s: ninguna consulta localizó el hotel", entrada, salida)
         return None
 
     total = _extraer(hotel.get("total_rate"))
