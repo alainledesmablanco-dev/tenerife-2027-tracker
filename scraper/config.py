@@ -1,14 +1,4 @@
-"""Configuración del rastreo. Todo lo ajustable vive aquí.
-
-⚠️ PRUEBA TEMPORAL ⚠️
-NOCHE_OBLIGATORIA está puesta en diciembre de 2026 para comprobar que la
-comparativa con otras webs (Google Hotels vía SerpApi) funciona de verdad.
-Con las fechas reales de agosto de 2027 no se puede probar: Google solo
-publica precios con unos 11 meses de antelación.
-
-Para volver a las fechas reales basta con cambiar una línea:
-    NOCHE_OBLIGATORIA = date(2027, 8, 8)
-"""
+"""Configuración del rastreo. Todo lo ajustable vive aquí."""
 
 from datetime import date, timedelta
 
@@ -25,8 +15,7 @@ NINOS = 1
 EDAD_NINO = 5
 
 # Noche que hay que pasar sí o sí en el hotel (fiesta del hotel)
-# REAL: date(2027, 8, 8)  ·  PRUEBA: date(2026, 12, 8)
-NOCHE_OBLIGATORIA = date(2026, 12, 8)
+NOCHE_OBLIGATORIA = date(2027, 8, 8)
 
 # Se rastrean estancias de 5 a 9 noches (35 combinaciones de fechas). Las de 8
 # y 9 noches suelen salir más baratas por noche, así que merece la pena
