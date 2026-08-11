@@ -1,3 +1,14 @@
+    props = datos.get("properties") or []
+    hotel = _nuestro_hotel(props)
+    if not hotel:
+        # Log detallado a propósito: "no aparece" puede significar que Google
+        # devolvió cero propiedades o que devolvió varias y ninguna casaba con
+        # el filtro de nombre. Son causas distintas y hay que poder verlas.
+        nombres = " | ".join((p.get("name") or "sin nombre") for p in props[:6])
+        log.info("OTAs %s → %s: el hotel no está entre las %d propiedades "
+                 "devueltas por Google. Nombres: %s",
+                 entrada, salida, len(props), nombres or "(lista vacía)")
+        return None
 """Precios del hotel en otras webs (Booking, Expedia, Agoda...) vía SerpApi.
 
 Google Hotels ya agrega los precios de las principales OTAs para un hotel y
