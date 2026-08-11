@@ -145,6 +145,11 @@ def main() -> int:
     elif _toca_otas(datos, sello):
         log.info("Consultando precios en otras webs")
         encontradas = otas.buscar()
+        # Se deja constancia de la comprobación aunque no haya resultados, para
+        # que el panel distinga "falta la clave" de "Google todavía no publica
+        # precios para esas fechas". Son cosas muy distintas y antes se
+        # mostraban con el mismo mensaje, que era engañoso.
+        datos["otas_comprobado"] = sello.strftime("%Y-%m-%d %H:%M")
         if encontradas:
             datos["ofertas_otas"] = encontradas
             datos["otas_actualizado"] = sello.strftime("%Y-%m-%d %H:%M")
