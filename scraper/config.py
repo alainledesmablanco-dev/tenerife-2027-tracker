@@ -47,6 +47,19 @@ REGIMEN_TI = "Todo Incluido"
 PRECIO_REFERENCIA = 1987.0
 
 # ------------------------------------------------------------- vuelos
+# Con un niño de 5 años y 3-4 horas de vuelo, una escala convierte el viaje en
+# un día entero. Solo se tienen en cuenta los directos.
+SOLO_VUELOS_DIRECTOS = True
+
+# Pasajeros que vuelan. Google Flights cotiza un adulto, así que el total de la
+# familia se estima multiplicando. El niño paga tarifa de adulto en avión salvo
+# descuentos puntuales, así que multiplicar por 3 se queda del lado seguro.
+PASAJEROS = ADULTOS + NINOS
+
+# Ventanas de fechas para las que se cotizan vuelos. Cada una son dos consultas
+# (Tenerife Sur y Norte) de unos 30 s, así que subir esto alarga la pasada.
+MAX_VENTANAS_VUELOS = 3
+
 # Aerolíneas con ruta directa Bilbao-Tenerife que hay que vigilar.
 # La venta de agosto 2027 abre previsiblemente entre sep y nov de 2026.
 AEROLINEAS = [
