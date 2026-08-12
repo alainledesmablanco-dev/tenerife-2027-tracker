@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-08-12 01:33",
+  "ultima_comprobacion": "2026-08-12 09:34",
   "tarifas_actuales": [
     {
       "entrada": "2026-09-02",
@@ -380,6 +380,27 @@
     },
     {
       "fecha": "2026-08-12 01:33",
+      "mejor_por_noche": 272.0,
+      "mejor_total": 2456.0,
+      "mejor_detalle": {
+        "entrada": "2026-09-02",
+        "salida": "2026-09-11",
+        "noches": 9,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2456.0,
+        "por_noche": 272.0,
+        "antes": 2729.0,
+        "descuento": "-10%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "tarifas_encontradas": 18,
+      "vuelos_abiertos": true,
+      "detalle_vuelos": "Desde 63 € por adulto, ida y vuelta 02/09–09/09 (BIO→TFS, Google Flights)"
+    },
+    {
+      "fecha": "2026-08-12 09:34",
       "mejor_por_noche": 272.0,
       "mejor_total": 2456.0,
       "mejor_detalle": {
