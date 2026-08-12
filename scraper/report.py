@@ -1,7 +1,8 @@
 """Genera docs/index.html, el panel que se publica en GitHub Pages.
 
-El indicador principal es €/noche, no el total: con la duración flexible
-(5 a 9 noches) los totales no son comparables entre sí.
+El indicador principal es el viaje completo (hotel + vuelos), porque es el
+único número que se puede comparar de verdad: la estancia más barata por noche
+no tiene por qué ser el viaje más barato.
 """
 
 from __future__ import annotations
@@ -35,7 +36,7 @@ h2 { font-size:13px; text-transform:uppercase; letter-spacing:.07em;
 .banner { border-left:3px solid #c9803a; background:#fdf6ee; padding:13px 16px;
   border-radius:6px; margin-bottom:22px; font-size:14px; }
 .banner.ok { border-color:#3f8f52; background:#f0f7f1; }
-/* En móvil seis columnas no caben: la tabla se desliza en horizontal
+/* En móvil las columnas no caben: la tabla se desliza en horizontal
    dentro de su tarjeta en vez de cortarse. */
 .tabla { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 table { width:100%; min-width:540px; border-collapse:collapse; font-size:13.5px; }
@@ -64,20 +65,27 @@ footer { margin-top:30px; color:#9a938a; font-size:12px; }
 <body>
 <h1>Bilbao → Tenerife · agosto 2027</h1>
 <p class="sub">Landmar Costa Los Gigantes · 2 adultos + 1 niño · Todo Incluido ·
-solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
+solo cancelación gratuita · solo vuelos directos ·
+obligatorio estar la noche del 8 de agosto</p>
 
 <div class="banner" id="banner"></div>
 
 <div class="grid">
-  <div class="card kpi"><div class="label">Mejor €/noche</div>
+  <div class="card kpi"><div class="label">Viaje completo</div>
+    <div class="value" id="kTrip">—</div><div class="note" id="kTripNote"></div></div>
+  <div class="card kpi"><div class="label">Mejor €/noche (hotel)</div>
     <div class="value" id="kBest">—</div><div class="note" id="kBestNote"></div></div>
-  <div class="card kpi"><div class="label">Última comprobación</div>
-    <div class="value" id="kLast">—</div><div class="note">2 veces al día</div></div>
-  <div class="card kpi"><div class="label">Vuelos</div>
+  <div class="card kpi"><div class="label">Vuelos directos</div>
     <div class="value" id="kFly">—</div><div class="note" id="kFlyNote"></div></div>
-  <div class="card kpi"><div class="label">Comprobaciones</div>
-    <div class="value" id="kRuns">—</div><div class="note">desde el inicio</div></div>
+  <div class="card kpi"><div class="label">Última comprobación</div>
+    <div class="value" id="kLast">—</div><div class="note" id="kRunsNote"></div></div>
 </div>
+
+<h2>Viaje completo · hotel + vuelos</h2>
+<div class="card"><div class="tabla"><table id="c"><thead><tr>
+<th>Entrada</th><th>Salida</th><th>N</th><th>Habitación</th><th>Aerolínea</th>
+<th>Hotel</th><th>Vuelos</th><th>Total</th></tr></thead><tbody></tbody></table></div>
+<p class="nota" id="cNota"></p></div>
 
 <h2>Evolución (€/noche)</h2>
 <div class="card chartbox"><canvas id="chart"></canvas></div>
@@ -93,7 +101,7 @@ solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
 <th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table></div>
 <p class="nota" id="oNota"></p></div>
 
-<h2>Vuelos (vía Google Flights)</h2>
+<h2>Vuelos directos (vía Google Flights)</h2>
 <div class="card"><div class="tabla"><table id="v"><thead><tr>
 <th>Aerolínea</th><th>Horario</th><th>Duración</th><th>Escalas</th>
 <th>Destino</th><th>€/adulto</th></tr></thead><tbody></tbody></table></div>
@@ -119,7 +127,8 @@ document.getElementById("kBestNote").textContent = mejor
     " · " + mejor.noches + " noches · " + eur(mejor.total) + " en total"
   : "sin datos";
 document.getElementById("kLast").textContent = (DATA.ultima_comprobacion || "—").slice(5);
-document.getElementById("kRuns").textContent = (DATA.registros || []).length;
+document.getElementById("kRunsNote").textContent =
+  (DATA.registros || []).length + " comprobaciones · 2 al día";
 document.getElementById("kFly").textContent = DATA.vuelos_abiertos ? "Abiertos" : "Cerrados";
 const ultimo = (DATA.registros || []).slice(-1)[0] || {};
 document.getElementById("kFlyNote").textContent = ultimo.detalle_vuelos || "";
@@ -133,6 +142,42 @@ if (DATA.vuelos_abiertos) {
   b.innerHTML = "<b>Los vuelos todavía no están a la venta.</b> Las aerolíneas " +
     "abren 10–12 meses antes. El hotel sí se puede reservar con cancelación gratuita.";
 }
+
+// --- viaje completo -----------------------------------------------------
+// Es el número que de verdad importa: la estancia más barata por noche no
+// tiene por qué ser el viaje más barato, porque cada noche extra suma hotel
+// pero no suma billete.
+const combis = DATA.combinaciones || [];
+const pax = DATA.pasajeros || 3;
+document.getElementById("kTrip").textContent = combis.length ? eur(combis[0].total) : "—";
+document.getElementById("kTripNote").textContent = combis.length
+  ? combis[0].noches + " noches · " + combis[0].entrada + " → " + combis[0].salida +
+    " · hotel " + eur(combis[0].hotel_total) + " + vuelos " + eur(combis[0].vuelos_total)
+  : "faltan vuelos para poder sumarlo";
+
+const cb = document.querySelector("#c tbody");
+combis.forEach((c, i) => {
+  const tr = cb.insertRow();
+  tr.innerHTML = '<td class="num">' + c.entrada + '</td>' +
+    '<td class="num">' + c.salida + '</td>' +
+    '<td class="num">' + c.noches + '</td>' +
+    '<td>' + c.habitacion + '</td>' +
+    '<td>' + c.aerolinea + ' (' + c.destino + ')</td>' +
+    '<td class="num">' + eur(c.hotel_total) + '</td>' +
+    '<td class="num">' + eur(c.vuelos_total) + '</td>' +
+    '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(c.total) + '</td>';
+});
+if (!cb.rows.length) {
+  vacio(cb, 8, DATA.vuelos_abiertos
+    ? "Hay vuelos, pero para fechas distintas a las mejores del hotel."
+    : "Cuando las aerolíneas abran la venta se podrá sumar el viaje entero.");
+}
+document.getElementById("cNota").textContent = combis.length
+  ? "Hotel para " + pax + " personas con Todo Incluido, más " + pax +
+    " billetes directos de ida y vuelta. El vuelo es una estimación: Google" +
+    " Flights cotiza un adulto y aquí se multiplica por " + pax + ", así que" +
+    " el precio real será ese o algo menos, nunca más."
+  : "";
 
 const tb = document.querySelector("#t tbody");
 (DATA.tarifas_actuales || []).forEach((t, i) => {
@@ -208,10 +253,8 @@ let notaVuelos = "";
 if (!vb.rows.length) {
   vacio(vb, 6, ultimo.detalle_vuelos || "Todavía no hay vuelos a la venta.");
 } else {
-  const v0 = (DATA.ofertas_vuelos || [])[0] || {};
-  notaVuelos = "Ida y vuelta " + (v0.ida || "") + " → " + (v0.vuelta || "") +
-    ", precio por adulto. Google Flights cotiza un pasajero: para 2 adultos y" +
-    " un niño cuenta algo menos del triple. Leído el " +
+  notaVuelos = "Solo directos, precio por adulto. Google Flights cotiza un" +
+    " pasajero: para " + pax + " cuenta algo menos del triple. Leído el " +
     (DATA.vuelos_actualizado || "") + ".";
 }
 document.getElementById("vNota").textContent = notaVuelos;
@@ -246,10 +289,13 @@ def generar(datos: dict, destino: Path) -> None:
         "otas_comprobado": datos.get("otas_comprobado"),
         "ofertas_vuelos": datos.get("ofertas_vuelos", []),
         "vuelos_actualizado": datos.get("vuelos_actualizado"),
+        "combinaciones": datos.get("combinaciones", []),
+        "pasajeros": datos.get("pasajeros", 3),
         "registros": [
             {"fecha": r["fecha"],
              "mejor_por_noche": r.get("mejor_por_noche"),
              "mejor_total": r.get("mejor_total"),
+             "mejor_viaje": r.get("mejor_viaje"),
              "detalle_vuelos": r.get("detalle_vuelos")}
             for r in datos.get("registros", [])
         ][-180:],
