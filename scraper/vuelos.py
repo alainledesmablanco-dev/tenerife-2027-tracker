@@ -23,15 +23,20 @@ horario, duración y escalas.
 
 Cómo se leen las tarjetas
 -------------------------
-La primera versión de esta lectura buscaba precios sueltos por toda la página
-y se quedaba con el mínimo. Funcionaba para saber si había venta, pero perdía
-a qué vuelo correspondía cada precio: en la pasada del 12-ago salió "63 €" sin
-aerolínea porque el precio y el nombre estaban en trozos de texto distintos.
+La primera versión buscaba precios sueltos por toda la página y se quedaba con
+el mínimo. Servía para saber si había venta, pero perdía a qué vuelo
+correspondía cada precio: salió "63 €" sin aerolínea.
 
-Ahora se recorre el texto por tarjetas. Cada resultado empieza con una línea de
-horario ("7:15 AM – 10:05 AM") y las siguientes diez líneas contienen aerolínea,
-duración, aeropuertos, escalas y precio. Anclando en el horario se mantiene
-junta la información de cada vuelo.
+La segunda intentó agrupar por líneas, anclando en un horario tipo
+"7:15 AM - 10:05 AM" al principio de línea. No casó ni una vez: Google no
+maquetó el texto como yo había supuesto. El log lo dijo tal cual —"12 precios
+sueltos pero ninguna tarjeta reconocible"— y de ahí sale esta tercera versión.
+
+Ahora no se adivina el formato del texto: se toma cada `<li>` de la página, que
+es como Google agrupa cada resultado, y se lee dentro de ese trozo. La
+estructura HTML es mucho más estable que el orden de las líneas. Si aun así no
+se reconoce ninguna tarjeta, se vuelca una muestra al log para poder mirarla
+en vez de seguir suponiendo.
 
 Sobre el precio
 ---------------
@@ -63,14 +68,18 @@ DESTINOS = (("TFS", "Tenerife Sur"), ("TFN", "Tenerife Norte"))
 PRECIO_DELANTE = re.compile(r"€\s*(\d[\d.,]*)")
 PRECIO_DETRAS = re.compile(r"(\d[\d.,]*)\s*€")
 
-# Ancla de cada tarjeta: "7:15 AM – 10:05 AM" o "07:15 – 10:05"
+# El horario ya no es el ancla, solo un dato más, así que se busca en
+# cualquier posición y se aceptan los varios guiones que usa Google.
 HORA_RE = re.compile(
-    r"^\d{1,2}:\d{2}\s*(?:AM|PM)?\s*[–—-]\s*\d{1,2}:\d{2}\s*(?:AM|PM)?", re.I
+    r"\d{1,2}:\d{2}\s*(?:AM|PM)?\s*[–—\-−]\s*\d{1,2}:\d{2}\s*(?:AM|PM)?", re.I
 )
+UNA_HORA_RE = re.compile(r"^\d{1,2}:\d{2}\s*(?:AM|PM)?$", re.I)
 DURACION_RE = re.compile(r"\b(\d+)\s*hr\b(?:\s*(\d+)\s*min)?|\b(\d+)\s*h\s*(\d+)?", re.I)
 DIRECTO_RE = re.compile(r"\bnonstop\b|\bdirecto\b", re.I)
 ESCALAS_RE = re.compile(r"\b(\d+)\s*(?:stops?|escalas?)\b", re.I)
-AEROPUERTOS_RE = re.compile(r"^[A-Z]{3}\s*[–—-]\s*[A-Z]{3}$")
+# re.M para que valga tanto sobre una línea suelta como buscándola dentro de
+# la tarjeta entera; sin él, el ^...$ nunca casaba en el bloque multilínea.
+AEROPUERTOS_RE = re.compile(r"^[A-Z]{3}\s*[–—\-−]\s*[A-Z]{3}$", re.M)
 
 # Filtro de cordura: por debajo de 30 € no hay ida y vuelta peninsular-Canarias
 # y por encima de 3000 € lo que hemos leído no es un billete.
@@ -87,7 +96,7 @@ SIN_VUELOS = (
 )
 
 ESPERA_MS = 25_000
-LINEAS_TARJETA = 12
+MAX_LI = 150
 
 
 def _a_float(crudo: str) -> float | None:
@@ -133,14 +142,20 @@ def _es_aerolinea(linea: str) -> bool:
     """Descarta las líneas de la tarjeta que no son el nombre de la compañía."""
     if not linea or len(linea) > 60:
         return False
-    if _precios(linea) or HORA_RE.match(linea):
+    if _precios(linea) or HORA_RE.search(linea) or UNA_HORA_RE.match(linea):
         return False
     if AEROPUERTOS_RE.match(linea) or DIRECTO_RE.search(linea):
         return False
     if ESCALAS_RE.search(linea) or DURACION_RE.search(linea):
         return False
-    # "Separate tickets booked together", "Price unavailable", avisos varios
-    return not linea.lower().startswith(("separate", "price", "self transfer"))
+    if not any(c.isalpha() for c in linea):
+        return False
+    descartes = ("separate", "price", "self transfer", "round trip", "ida y",
+                 "emisiones", "emissions", "avg", "typical", "co2",
+                 "select", "seleccionar", "más barato", "cheapest", "best",
+                 "unavailable", "no disponible")
+    bajo = linea.lower()
+    return not any(bajo.startswith(d) for d in descartes)
 
 
 def _escalas(bloque: str) -> str:
@@ -164,40 +179,88 @@ def _duracion(bloque: str) -> str | None:
     return f"{int(horas)}h {int(minutos):02d}m"
 
 
-def _ofertas(texto: str, destino: str) -> list[dict]:
+def _parece_vuelo(bloque: str) -> bool:
+    """¿Este <li> es un resultado de vuelo y no un filtro o un anuncio?
+
+    Se exige precio y al menos dos señales propias de un itinerario. Sin este
+    filtro entran las tarjetas de "ordenar por precio" y similares.
+    """
+    if not _precios(bloque):
+        return False
+    señales = (
+        DIRECTO_RE.search(bloque) is not None,
+        ESCALAS_RE.search(bloque) is not None,
+        DURACION_RE.search(bloque) is not None,
+        HORA_RE.search(bloque) is not None,
+        AEROPUERTOS_RE.search(bloque) is not None,
+    )
+    return sum(señales) >= 2
+
+
+def _horario(bloque: str) -> str | None:
+    """El horario, venga en una línea o partido en dos."""
+    m = HORA_RE.search(bloque)
+    if m:
+        return re.sub(r"\s+", " ", m.group(0)).strip()
+
+    sueltas = [l.strip() for l in bloque.split("\n") if UNA_HORA_RE.match(l.strip())]
+    if len(sueltas) >= 2:
+        return f"{sueltas[0]} – {sueltas[1]}"
+    return None
+
+
+def _ofertas(tarjetas: list[str], destino: str) -> list[dict]:
     """Extrae una oferta por tarjeta de resultado."""
-    lineas = [l.strip() for l in texto.split("\n")]
     ofertas: list[dict] = []
 
-    for i, linea in enumerate(lineas):
-        if not HORA_RE.match(linea):
+    for bloque in tarjetas:
+        if not _parece_vuelo(bloque):
             continue
 
-        trozo = [l for l in lineas[i:i + LINEAS_TARJETA] if l]
-        bloque = "\n".join(trozo)
-        precios = _precios(bloque)
-        if not precios:
-            continue
+        lineas = [l.strip() for l in bloque.split("\n") if l.strip()]
+        aerolinea = next((l for l in lineas if _es_aerolinea(l)), "?")
 
-        aerolinea = next(
-            (l for l in trozo[1:] if _es_aerolinea(l)), "?"
-        )
         ofertas.append({
             "aerolinea": aerolinea,
-            "precio": min(precios),
-            "horario": linea,
+            "precio": min(_precios(bloque)),
+            "horario": _horario(bloque),
             "duracion": _duracion(bloque),
             "escalas": _escalas(bloque),
             "destino": destino,
         })
 
-    # Una misma tarjeta puede aparecer dos veces (lista principal y "mejores").
+    # Los <li> anidados y la lista de "mejores vuelos" repiten tarjetas.
     unicas: dict[tuple, dict] = {}
     for o in ofertas:
         clave = (o["aerolinea"], o["precio"], o["horario"])
         unicas.setdefault(clave, o)
 
     return sorted(unicas.values(), key=lambda o: o["precio"])
+
+
+def _tarjetas(page) -> list[str]:
+    """El texto de cada <li> de la página, que es como Google agrupa cada vuelo.
+
+    Se limita a los primeros MAX_LI porque Google pinta también los <li> de
+    menús y filtros, y a los que caben en 900 caracteres: por encima de eso no
+    es una tarjeta suelta sino un contenedor con varias dentro.
+    """
+    trozos: list[str] = []
+    try:
+        lis = page.locator("li")
+        total = min(lis.count(), MAX_LI)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Vuelos: no se pudieron listar las tarjetas (%s)", exc)
+        return trozos
+
+    for i in range(total):
+        try:
+            txt = lis.nth(i).inner_text(timeout=2000)
+        except Exception:  # noqa: BLE001
+            continue
+        if txt and 20 < len(txt) < 900:
+            trozos.append(txt)
+    return trozos
 
 
 def _url(destino: str, ida: date, vuelta: date) -> str:
@@ -251,30 +314,39 @@ def _consultar(page, codigo: str, nombre: str,
         log.warning("Vuelos %s: no se pudo leer el texto (%s)", codigo, exc)
         return [], "no_leido"
 
-    ofertas = _ofertas(texto, codigo)
+    tarjetas = _tarjetas(page)
+    ofertas = _ofertas(tarjetas, codigo)
     if ofertas:
         mejor = ofertas[0]
-        log.info("Vuelos %s→%s (%s): %d vuelos leídos, el mejor %.0f € (%s, %s)",
-                 cfg.ORIGEN, codigo, nombre, len(ofertas),
+        log.info("Vuelos %s->%s (%s): %d vuelos leídos de %d tarjetas, "
+                 "el mejor %.0f EUR (%s, %s)",
+                 cfg.ORIGEN, codigo, nombre, len(ofertas), len(tarjetas),
                  mejor["precio"], mejor["aerolinea"], mejor["escalas"])
         return ofertas, "ok"
 
-    # Hay precios pero no hemos sabido agruparlos en tarjetas: el diseño de
-    # Google ha cambiado. Se avisa, porque es un fallo nuestro, no de Google.
+    # Hay precios pero no hemos sabido leer las tarjetas: el diseño de Google
+    # ha cambiado. Es un fallo nuestro, no de Google, así que se vuelca una
+    # muestra para poder arreglarlo mirando en vez de suponiendo.
     sueltos = _precios(texto)
     if sueltos:
-        log.warning("Vuelos %s→%s: %d precios sueltos pero ninguna tarjeta "
-                    "reconocible; revisar el formato de Google Flights",
-                    cfg.ORIGEN, codigo, len(sueltos))
-        return ([{"aerolinea": "?", "precio": min(sueltos), "horario": "?",
+        log.warning("Vuelos %s->%s: %d precios sueltos y %d tarjetas, pero "
+                    "ninguna reconocible como vuelo",
+                    cfg.ORIGEN, codigo, len(sueltos), len(tarjetas))
+        for i, muestra in enumerate(tarjetas[:3]):
+            log.warning("Muestra de tarjeta %d: %r", i + 1, muestra[:400])
+        if not tarjetas:
+            corte = texto.find("€")
+            log.warning("Muestra del texto junto al primer precio: %r",
+                        texto[max(corte - 250, 0):corte + 250])
+        return ([{"aerolinea": "?", "precio": min(sueltos), "horario": None,
                   "duracion": None, "escalas": "?", "destino": codigo}], "ok")
 
     bajo = texto.lower()
     if any(marca in bajo for marca in SIN_VUELOS):
-        log.info("Vuelos %s→%s: Google dice que no hay vuelos", cfg.ORIGEN, codigo)
+        log.info("Vuelos %s->%s: Google dice que no hay vuelos", cfg.ORIGEN, codigo)
         return [], "sin_vuelos"
 
-    log.warning("Vuelos %s→%s: ni precios ni mensaje reconocible "
+    log.warning("Vuelos %s->%s: ni precios ni mensaje reconocible "
                 "(%d caracteres leídos)", cfg.ORIGEN, codigo, len(texto))
     return [], "no_leido"
 
@@ -329,8 +401,8 @@ def venta_abierta(page=None, entrada=None, salida=None) -> tuple[bool, str, list
         detalle = (
             f"Desde {mejor['precio']:.0f} € por adulto con {mejor['aerolinea']} "
             f"({mejor['escalas']}), ida y vuelta "
-            f"{ida.strftime('%d/%m')}–{vuelta.strftime('%d/%m')} "
-            f"{cfg.ORIGEN}→{mejor['destino']}"
+            f"{ida.strftime('%d/%m')}-{vuelta.strftime('%d/%m')} "
+            f"{cfg.ORIGEN}-{mejor['destino']}"
         )
         return True, detalle, todas[:20]
 
