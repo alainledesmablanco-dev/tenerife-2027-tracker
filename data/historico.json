@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-08-12 14:25",
+  "ultima_comprobacion": "2026-08-12 14:52",
   "tarifas_actuales": [
     {
       "entrada": "2026-09-02",
@@ -440,32 +440,213 @@
       "tarifas_encontradas": 18,
       "vuelos_abiertos": true,
       "detalle_vuelos": "Desde 73 € por adulto con ? (?), ida y vuelta 02/09–09/09 BIO→TFS"
+    },
+    {
+      "fecha": "2026-08-12 14:52",
+      "mejor_por_noche": 273.0,
+      "mejor_total": 2457.0,
+      "mejor_detalle": {
+        "entrada": "2026-09-02",
+        "salida": "2026-09-11",
+        "noches": 9,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2457.0,
+        "por_noche": 273.0,
+        "antes": 2730.0,
+        "descuento": "-10%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "tarifas_encontradas": 18,
+      "vuelos_abiertos": true,
+      "detalle_vuelos": "Desde 152 € por adulto con VuelingIberia (directo), ida y vuelta 02/09-09/09 BIO-TFN"
     }
   ],
   "ofertas_vuelos": [
     {
-      "aerolinea": "?",
-      "precio": 73.0,
-      "horario": "?",
-      "duracion": null,
-      "escalas": "?",
+      "aerolinea": "VuelingIberia",
+      "precio": 152.0,
+      "horario": "11:55 AM – 2:05 PM",
+      "duracion": "3h 10m",
+      "escalas": "directo",
+      "destino": "TFN",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "Volotea",
+      "precio": 155.0,
+      "horario": "6:45 AM – 9:00 AM",
+      "duracion": "3h 15m",
+      "escalas": "directo",
       "destino": "TFS",
       "ida": "2026-09-02",
       "vuelta": "2026-09-09"
     },
     {
-      "aerolinea": "?",
-      "precio": 152.0,
-      "horario": "?",
-      "duracion": null,
-      "escalas": "?",
+      "aerolinea": "VuelingIberia",
+      "precio": 160.0,
+      "horario": "3:35 PM – 5:45 PM",
+      "duracion": "3h 10m",
+      "escalas": "directo",
       "destino": "TFN",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "IberiaOperated by Iberia Express",
+      "precio": 225.0,
+      "horario": "9:15 AM – 10:45 PM",
+      "duracion": "14h 30m",
+      "escalas": "1 escala",
+      "destino": "TFN",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "IberiaOperated by Iberia Express",
+      "precio": 250.0,
+      "horario": "9:15 AM – 1:15 PM",
+      "duracion": "5h 00m",
+      "escalas": "1 escala",
+      "destino": "TFN",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "IberiaOperated by Iberia Express",
+      "precio": 257.0,
+      "horario": "6:45 AM – 11:50 AM",
+      "duracion": "6h 05m",
+      "escalas": "1 escala",
+      "destino": "TFN",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "5:15 PM+1",
+      "precio": 262.0,
+      "horario": "4:50 PM – 5:15 PM",
+      "duracion": "25h 25m",
+      "escalas": "1 escala",
+      "destino": "TFS",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "IberiaOperated by Iberia Express",
+      "precio": 282.0,
+      "horario": "6:45 AM – 10:30 AM",
+      "duracion": "4h 45m",
+      "escalas": "1 escala",
+      "destino": "TFN",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "Air Europa",
+      "precio": 291.0,
+      "horario": "4:50 PM – 9:10 PM",
+      "duracion": "5h 20m",
+      "escalas": "1 escala",
+      "destino": "TFN",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "1:35 AM+1",
+      "precio": 294.0,
+      "horario": "9:35 PM – 1:35 AM",
+      "duracion": "5h 00m",
+      "escalas": "1 escala",
+      "destino": "TFS",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "IberiaOperated by Iberia Express",
+      "precio": 301.0,
+      "horario": "9:15 AM – 2:20 PM",
+      "duracion": "6h 05m",
+      "escalas": "1 escala",
+      "destino": "TFS",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "Air Europa",
+      "precio": 323.0,
+      "horario": "8:20 AM – 1:40 PM",
+      "duracion": "6h 20m",
+      "escalas": "1 escala",
+      "destino": "TFN",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "Air Europa",
+      "precio": 323.0,
+      "horario": "12:45 PM – 5:00 PM",
+      "duracion": "5h 15m",
+      "escalas": "1 escala",
+      "destino": "TFN",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "4:00 PM+1",
+      "precio": 400.0,
+      "horario": "2:10 PM – 4:00 PM",
+      "duracion": "26h 50m",
+      "escalas": "1 escala",
+      "destino": "TFS",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "4:00 PM+1",
+      "precio": 400.0,
+      "horario": "6:05 PM – 4:00 PM",
+      "duracion": "22h 55m",
+      "escalas": "1 escala",
+      "destino": "TFS",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "3:50 PM+1",
+      "precio": 443.0,
+      "horario": "6:40 PM – 3:50 PM",
+      "duracion": "22h 10m",
+      "escalas": "1 escala",
+      "destino": "TFS",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "MAD, LPA",
+      "precio": 813.0,
+      "horario": "1:30 PM – 11:00 PM",
+      "duracion": "10h 30m",
+      "escalas": "2 escalas",
+      "destino": "TFS",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "4:25 PM+1",
+      "precio": 1027.0,
+      "horario": "9:35 PM – 4:25 PM",
+      "duracion": "19h 50m",
+      "escalas": "2 escalas",
+      "destino": "TFS",
       "ida": "2026-09-02",
       "vuelta": "2026-09-09"
     }
   ],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-08-12 14:25",
+  "otas_comprobado": "2026-08-12 14:52",
   "ofertas_otas": [
     {
       "entrada": "2026-09-02",
@@ -474,9 +655,15 @@
       "hotel": "Hotel Landmar Costa Los Gigantes Family Resort",
       "por_noche": 425.0,
       "total": 2973.0,
-      "fuentes": []
+      "fuentes": [
+        {
+          "web": "Booking.com",
+          "por_noche": 425.0,
+          "total": 2973.0
+        }
+      ]
     }
   ],
-    "otas_actualizado": "2026-08-11 01:33",
-  "vuelos_actualizado": "2026-08-12 14:25"
+  "otas_actualizado": "2026-08-12 14:52",
+  "vuelos_actualizado": "2026-08-12 14:52"
 }
