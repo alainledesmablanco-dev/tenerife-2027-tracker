@@ -56,8 +56,8 @@ def guardar_historico(datos: dict) -> None:
     )
 
 
-def rastrear() -> tuple[list[dict], bool, str]:
-    """Devuelve (tarifas, vuelos_abiertos, detalle_vuelos)."""
+def rastrear() -> tuple[list[dict], bool, str, list[dict]]:
+    """Devuelve (tarifas, vuelos_abiertos, detalle_vuelos, ofertas_vuelos)."""
     tarifas: list[dict] = []
     max_ventanas = int(os.environ.get("MAX_VENTANAS", "35"))
     ventanas = cfg.ventanas_validas()[:max_ventanas]
@@ -81,25 +81,25 @@ def rastrear() -> tuple[list[dict], bool, str]:
                 encontradas = landmar.consultar(page, entrada, salida, noches)
                 for t in encontradas:
                     tarifas.append(t.dict())
-                log.info("%s → %s (%dn): %d tarifas",
+                log.info("%s -> %s (%dn): %d tarifas",
                          entrada, salida, noches, len(encontradas))
             except Exception as exc:  # noqa: BLE001
-                log.warning("Error en %s → %s: %s", entrada, salida, exc)
+                log.warning("Error en %s -> %s: %s", entrada, salida, exc)
             time.sleep(cfg.PAUSA_ENTRE_BUSQUEDAS)
 
         contexto.close()
         navegador.close()
 
-    abiertos, detalle = vuelos.venta_abierta()
+    abiertos, detalle, ofertas_vuelos = vuelos.venta_abierta()
 
-    return tarifas, abiertos, detalle
+    return tarifas, abiertos, detalle, ofertas_vuelos
 
 
 def _toca_otas(datos: dict, sello: datetime) -> bool:
     """Una sola consulta de OTAs por día natural, la primera pasada que toque.
 
     El plan gratuito de SerpApi son 250 búsquedas/mes y cada consulta gasta una
-    por ventana de fechas. Con MAX_VENTANAS_OTAS=1 se queda en ~30 al mes.
+    por ventana de fechas. Con MAX_VENTANAS_OTAS=1 se queda en ~60 al mes.
     """
     ultimo = (datos.get("otas_actualizado") or "")[:10]
     return ultimo != sello.strftime("%Y-%m-%d")
@@ -124,7 +124,7 @@ def _mejores_por_grupo(tarifas: list[dict], tope: int = 15) -> list[dict]:
 
 def main() -> int:
     datos = cargar_historico()
-    tarifas, abiertos, detalle = rastrear()
+    tarifas, abiertos, detalle, ofertas_vuelos = rastrear()
 
     validas = [
         t for t in tarifas
@@ -166,6 +166,8 @@ def main() -> int:
         "detalle_vuelos": detalle,
     })
     datos["vuelos_abiertos"] = abiertos
+    datos["ofertas_vuelos"] = ofertas_vuelos
+    datos["vuelos_actualizado"] = sello.strftime("%Y-%m-%d %H:%M")
     datos["referencia_noche"] = round(REFERENCIA_NOCHE, 2)
     datos["ultima_comprobacion"] = sello.strftime("%Y-%m-%d %H:%M")
     datos["tarifas_actuales"] = _mejores_por_grupo(validas)
