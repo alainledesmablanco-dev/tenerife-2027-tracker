@@ -24,7 +24,7 @@ h2 { font-size:13px; text-transform:uppercase; letter-spacing:.07em;
 .banner { border-left:3px solid #c9803a; background:#fdf6ee; padding:13px 16px;
   border-radius:6px; margin-bottom:22px; font-size:14px; }
 .banner.ok { border-color:#3f8f52; background:#f0f7f1; }
-/* En móvil seis columnas no caben: la tabla se desliza en horizontal
+/* En móvil las columnas no caben: la tabla se desliza en horizontal
    dentro de su tarjeta en vez de cortarse. */
 .tabla { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 table { width:100%; min-width:540px; border-collapse:collapse; font-size:13.5px; }
@@ -53,20 +53,27 @@ footer { margin-top:30px; color:#9a938a; font-size:12px; }
 <body>
 <h1>Bilbao → Tenerife · agosto 2027</h1>
 <p class="sub">Landmar Costa Los Gigantes · 2 adultos + 1 niño · Todo Incluido ·
-solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
+solo cancelación gratuita · solo vuelos directos ·
+obligatorio estar la noche del 8 de agosto</p>
 
 <div class="banner" id="banner"></div>
 
 <div class="grid">
-  <div class="card kpi"><div class="label">Mejor €/noche</div>
+  <div class="card kpi"><div class="label">Viaje completo</div>
+    <div class="value" id="kTrip">—</div><div class="note" id="kTripNote"></div></div>
+  <div class="card kpi"><div class="label">Mejor €/noche (hotel)</div>
     <div class="value" id="kBest">—</div><div class="note" id="kBestNote"></div></div>
-  <div class="card kpi"><div class="label">Última comprobación</div>
-    <div class="value" id="kLast">—</div><div class="note">2 veces al día</div></div>
-  <div class="card kpi"><div class="label">Vuelos</div>
+  <div class="card kpi"><div class="label">Vuelos directos</div>
     <div class="value" id="kFly">—</div><div class="note" id="kFlyNote"></div></div>
-  <div class="card kpi"><div class="label">Comprobaciones</div>
-    <div class="value" id="kRuns">—</div><div class="note">desde el inicio</div></div>
+  <div class="card kpi"><div class="label">Última comprobación</div>
+    <div class="value" id="kLast">—</div><div class="note" id="kRunsNote"></div></div>
 </div>
+
+<h2>Viaje completo · hotel + vuelos</h2>
+<div class="card"><div class="tabla"><table id="c"><thead><tr>
+<th>Entrada</th><th>Salida</th><th>N</th><th>Habitación</th><th>Aerolínea</th>
+<th>Hotel</th><th>Vuelos</th><th>Total</th></tr></thead><tbody></tbody></table></div>
+<p class="nota" id="cNota"></p></div>
 
 <h2>Evolución (€/noche)</h2>
 <div class="card chartbox"><canvas id="chart"></canvas></div>
@@ -82,7 +89,7 @@ solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
 <th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table></div>
 <p class="nota" id="oNota"></p></div>
 
-<h2>Vuelos (vía Google Flights)</h2>
+<h2>Vuelos directos (vía Google Flights)</h2>
 <div class="card"><div class="tabla"><table id="v"><thead><tr>
 <th>Aerolínea</th><th>Horario</th><th>Duración</th><th>Escalas</th>
 <th>Destino</th><th>€/adulto</th></tr></thead><tbody></tbody></table></div>
@@ -93,7 +100,7 @@ solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
 </footer>
 
 <script>
-const DATA = {"mejor_precio_historico": {"entrada": "2027-08-01", "salida": "2027-08-09", "noches": 8, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2147.0, "por_noche": 268.0, "antes": 2526.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, "ultima_comprobacion": "2026-08-12 15:23", "vuelos_abiertos": false, "tarifas_actuales": [{"entrada": "2027-08-08", "salida": "2027-08-17", "noches": 9, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2420.0, "por_noche": 268.0, "antes": 2848.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-06", "salida": "2027-08-14", "noches": 8, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2159.0, "por_noche": 269.0, "antes": 2541.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-16", "noches": 8, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 2269.0, "por_noche": 283.0, "antes": 2670.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-07", "salida": "2027-08-16", "noches": 9, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 2555.0, "por_noche": 283.0, "antes": 3006.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-06", "salida": "2027-08-13", "noches": 7, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2001.0, "por_noche": 285.0, "antes": 2224.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-07", "salida": "2027-08-13", "noches": 6, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 1714.0, "por_noche": 285.0, "antes": 1905.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-13", "noches": 5, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 1427.0, "por_noche": 285.0, "antes": 1586.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-17", "noches": 9, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 2672.0, "por_noche": 296.0, "antes": 3144.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-07", "salida": "2027-08-15", "noches": 8, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 2382.0, "por_noche": 297.0, "antes": 2803.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-07", "salida": "2027-08-14", "noches": 7, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 2106.0, "por_noche": 300.0, "antes": 2341.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-14", "noches": 6, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 1804.0, "por_noche": 300.0, "antes": 2005.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-13", "noches": 5, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 1503.0, "por_noche": 300.0, "antes": 1671.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-06", "salida": "2027-08-13", "noches": 7, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 2211.0, "por_noche": 315.0, "antes": 2457.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-07", "salida": "2027-08-13", "noches": 6, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 1893.0, "por_noche": 315.0, "antes": 2104.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-07", "salida": "2027-08-12", "noches": 5, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 1579.0, "por_noche": 315.0, "antes": 1755.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}], "ofertas_otas": [{"entrada": "2026-09-02", "salida": "2026-09-09", "noches": 7, "hotel": "Hotel Landmar Costa Los Gigantes Family Resort", "por_noche": 425.0, "total": 2973.0, "fuentes": [{"web": "Booking.com", "por_noche": 425.0, "total": 2973.0}]}], "otas_actualizado": "2026-08-12 14:52", "otas_comprobado": "2026-08-12 14:52", "ofertas_vuelos": [], "vuelos_actualizado": "2026-08-12 15:23", "registros": [{"fecha": "2026-08-09 00:45", "mejor_por_noche": null, "mejor_total": 1987.0, "detalle_vuelos": "El paquete rechaza BIO: la búsqueda aplica restricciones"}, {"fecha": "2026-08-09 02:12", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "Respuesta ambigua del buscador de paquetes"}, {"fecha": "2026-08-09 02:24", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "El paquete vuelo+hotel ya devuelve resultados con origen Bilbao"}, {"fecha": "2026-08-09 20:35", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "El paquete vuelo+hotel ya devuelve resultados con origen Bilbao"}, {"fecha": "2026-08-09 23:56", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 00:10", "mejor_por_noche": null, "mejor_total": 1420.0, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 09:38", "mejor_por_noche": null, "mejor_total": 1419.0, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 14:17", "mejor_por_noche": 268.0, "mejor_total": 2147.0, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 14:43", "mejor_por_noche": 268.0, "mejor_total": 2147.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-10 20:52", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 00:06", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 00:21", "mejor_por_noche": 284.0, "mejor_total": 1991.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 09:16", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 13:52", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 23:51", "mejor_por_noche": null, "mejor_total": null, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-12 00:48", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-12 01:33", "mejor_por_noche": 272.0, "mejor_total": 2456.0, "detalle_vuelos": "Desde 63 € por adulto, ida y vuelta 02/09–09/09 (BIO→TFS, Google Flights)"}, {"fecha": "2026-08-12 09:34", "mejor_por_noche": 272.0, "mejor_total": 2456.0, "detalle_vuelos": "Desde 63 € por adulto, ida y vuelta 02/09–09/09 (BIO→TFS, Google Flights)"}, {"fecha": "2026-08-12 14:25", "mejor_por_noche": 273.0, "mejor_total": 2457.0, "detalle_vuelos": "Desde 73 € por adulto con ? (?), ida y vuelta 02/09–09/09 BIO→TFS"}, {"fecha": "2026-08-12 14:52", "mejor_por_noche": 273.0, "mejor_total": 2457.0, "detalle_vuelos": "Desde 152 € por adulto con VuelingIberia (directo), ida y vuelta 02/09-09/09 BIO-TFN"}, {"fecha": "2026-08-12 15:23", "mejor_por_noche": 268.0, "mejor_total": 2420.0, "detalle_vuelos": "No se pudo leer Google Flights en esta pasada; se reintenta en la siguiente"}]};
+const DATA = {"mejor_precio_historico": {"entrada": "2027-08-01", "salida": "2027-08-09", "noches": 8, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2147.0, "por_noche": 268.0, "antes": 2526.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, "ultima_comprobacion": "2026-08-12 21:02", "vuelos_abiertos": false, "tarifas_actuales": [{"entrada": "2027-08-07", "salida": "2027-08-15", "noches": 8, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2159.0, "por_noche": 269.0, "antes": 2540.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-07", "salida": "2027-08-16", "noches": 9, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2426.0, "por_noche": 269.0, "antes": 2855.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-16", "noches": 8, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 2271.0, "por_noche": 283.0, "antes": 2672.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-17", "noches": 9, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 2552.0, "por_noche": 283.0, "antes": 3003.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-07", "salida": "2027-08-14", "noches": 7, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 2001.0, "por_noche": 285.0, "antes": 2224.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-14", "noches": 6, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 1714.0, "por_noche": 285.0, "antes": 1905.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-13", "noches": 5, "habitacion": "Suite", "regimen": "Todo Incluido Plus", "total": 1429.0, "por_noche": 285.0, "antes": 1588.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-16", "noches": 8, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 2380.0, "por_noche": 297.0, "antes": 2800.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-07", "salida": "2027-08-16", "noches": 9, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 2680.0, "por_noche": 297.0, "antes": 3153.0, "descuento": "-15%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-15", "noches": 7, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 2106.0, "por_noche": 300.0, "antes": 2340.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-03", "salida": "2027-08-09", "noches": 6, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 1810.0, "por_noche": 301.0, "antes": 2012.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-06", "salida": "2027-08-11", "noches": 5, "habitacion": "Suite Ocean View", "regimen": "Todo Incluido Plus", "total": 1509.0, "por_noche": 301.0, "antes": 1677.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-07", "salida": "2027-08-14", "noches": 7, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 2210.0, "por_noche": 315.0, "antes": 2456.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-07", "salida": "2027-08-13", "noches": 6, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 1895.0, "por_noche": 315.0, "antes": 2106.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}, {"entrada": "2027-08-08", "salida": "2027-08-13", "noches": 5, "habitacion": "Dúplex", "regimen": "Todo Incluido Plus", "total": 1577.0, "por_noche": 315.0, "antes": 1753.0, "descuento": "-10%", "cancelable": true, "codigo_promo": null}], "ofertas_otas": [{"entrada": "2026-09-02", "salida": "2026-09-09", "noches": 7, "hotel": "Hotel Landmar Costa Los Gigantes Family Resort", "por_noche": 425.0, "total": 2973.0, "fuentes": [{"web": "Booking.com", "por_noche": 425.0, "total": 2973.0}]}], "otas_actualizado": "2026-08-12 14:52", "otas_comprobado": "2026-08-12 14:52", "ofertas_vuelos": [], "vuelos_actualizado": "2026-08-12 21:02", "combinaciones": [], "pasajeros": 3, "registros": [{"fecha": "2026-08-09 00:45", "mejor_por_noche": null, "mejor_total": 1987.0, "mejor_viaje": null, "detalle_vuelos": "El paquete rechaza BIO: la búsqueda aplica restricciones"}, {"fecha": "2026-08-09 02:12", "mejor_por_noche": null, "mejor_total": null, "mejor_viaje": null, "detalle_vuelos": "Respuesta ambigua del buscador de paquetes"}, {"fecha": "2026-08-09 02:24", "mejor_por_noche": null, "mejor_total": null, "mejor_viaje": null, "detalle_vuelos": "El paquete vuelo+hotel ya devuelve resultados con origen Bilbao"}, {"fecha": "2026-08-09 20:35", "mejor_por_noche": null, "mejor_total": null, "mejor_viaje": null, "detalle_vuelos": "El paquete vuelo+hotel ya devuelve resultados con origen Bilbao"}, {"fecha": "2026-08-09 23:56", "mejor_por_noche": null, "mejor_total": null, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 00:10", "mejor_por_noche": null, "mejor_total": 1420.0, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 09:38", "mejor_por_noche": null, "mejor_total": 1419.0, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 14:17", "mejor_por_noche": 268.0, "mejor_total": 2147.0, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: configura las claves de Amadeus para consultar el inventario real, o crea una alerta en Google Flights"}, {"fecha": "2026-08-10 14:43", "mejor_por_noche": 268.0, "mejor_total": 2147.0, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-10 20:52", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 00:06", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 00:21", "mejor_por_noche": 284.0, "mejor_total": 1991.0, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 09:16", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 13:52", "mejor_por_noche": null, "mejor_total": null, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-11 23:51", "mejor_por_noche": null, "mejor_total": null, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-12 00:48", "mejor_por_noche": 268.0, "mejor_total": 2148.0, "mejor_viaje": null, "detalle_vuelos": "Sin comprobar: las aerolíneas no han abierto la venta de agosto 2027. Se revisa cada lunes si Google Flights ya acepta esas fechas"}, {"fecha": "2026-08-12 01:33", "mejor_por_noche": 272.0, "mejor_total": 2456.0, "mejor_viaje": null, "detalle_vuelos": "Desde 63 € por adulto, ida y vuelta 02/09–09/09 (BIO→TFS, Google Flights)"}, {"fecha": "2026-08-12 09:34", "mejor_por_noche": 272.0, "mejor_total": 2456.0, "mejor_viaje": null, "detalle_vuelos": "Desde 63 € por adulto, ida y vuelta 02/09–09/09 (BIO→TFS, Google Flights)"}, {"fecha": "2026-08-12 14:25", "mejor_por_noche": 273.0, "mejor_total": 2457.0, "mejor_viaje": null, "detalle_vuelos": "Desde 73 € por adulto con ? (?), ida y vuelta 02/09–09/09 BIO→TFS"}, {"fecha": "2026-08-12 14:52", "mejor_por_noche": 273.0, "mejor_total": 2457.0, "mejor_viaje": null, "detalle_vuelos": "Desde 152 € por adulto con VuelingIberia (directo), ida y vuelta 02/09-09/09 BIO-TFN"}, {"fecha": "2026-08-12 15:23", "mejor_por_noche": 268.0, "mejor_total": 2420.0, "mejor_viaje": null, "detalle_vuelos": "No se pudo leer Google Flights en esta pasada; se reintenta en la siguiente"}, {"fecha": "2026-08-12 21:02", "mejor_por_noche": 269.0, "mejor_total": 2159.0, "mejor_viaje": null, "detalle_vuelos": "No se pudo leer Google Flights en esta pasada; se reintenta en la siguiente"}]};
 const eur = n => n == null ? "—" :
   new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n);
 const vacio = (tb, n, msg) => {
@@ -108,7 +115,8 @@ document.getElementById("kBestNote").textContent = mejor
     " · " + mejor.noches + " noches · " + eur(mejor.total) + " en total"
   : "sin datos";
 document.getElementById("kLast").textContent = (DATA.ultima_comprobacion || "—").slice(5);
-document.getElementById("kRuns").textContent = (DATA.registros || []).length;
+document.getElementById("kRunsNote").textContent =
+  (DATA.registros || []).length + " comprobaciones · 2 al día";
 document.getElementById("kFly").textContent = DATA.vuelos_abiertos ? "Abiertos" : "Cerrados";
 const ultimo = (DATA.registros || []).slice(-1)[0] || {};
 document.getElementById("kFlyNote").textContent = ultimo.detalle_vuelos || "";
@@ -122,6 +130,42 @@ if (DATA.vuelos_abiertos) {
   b.innerHTML = "<b>Los vuelos todavía no están a la venta.</b> Las aerolíneas " +
     "abren 10–12 meses antes. El hotel sí se puede reservar con cancelación gratuita.";
 }
+
+// --- viaje completo -----------------------------------------------------
+// Es el número que de verdad importa: la estancia más barata por noche no
+// tiene por qué ser el viaje más barato, porque cada noche extra suma hotel
+// pero no suma billete.
+const combis = DATA.combinaciones || [];
+const pax = DATA.pasajeros || 3;
+document.getElementById("kTrip").textContent = combis.length ? eur(combis[0].total) : "—";
+document.getElementById("kTripNote").textContent = combis.length
+  ? combis[0].noches + " noches · " + combis[0].entrada + " → " + combis[0].salida +
+    " · hotel " + eur(combis[0].hotel_total) + " + vuelos " + eur(combis[0].vuelos_total)
+  : "faltan vuelos para poder sumarlo";
+
+const cb = document.querySelector("#c tbody");
+combis.forEach((c, i) => {
+  const tr = cb.insertRow();
+  tr.innerHTML = '<td class="num">' + c.entrada + '</td>' +
+    '<td class="num">' + c.salida + '</td>' +
+    '<td class="num">' + c.noches + '</td>' +
+    '<td>' + c.habitacion + '</td>' +
+    '<td>' + c.aerolinea + ' (' + c.destino + ')</td>' +
+    '<td class="num">' + eur(c.hotel_total) + '</td>' +
+    '<td class="num">' + eur(c.vuelos_total) + '</td>' +
+    '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(c.total) + '</td>';
+});
+if (!cb.rows.length) {
+  vacio(cb, 8, DATA.vuelos_abiertos
+    ? "Hay vuelos, pero para fechas distintas a las mejores del hotel."
+    : "Cuando las aerolíneas abran la venta se podrá sumar el viaje entero.");
+}
+document.getElementById("cNota").textContent = combis.length
+  ? "Hotel para " + pax + " personas con Todo Incluido, más " + pax +
+    " billetes directos de ida y vuelta. El vuelo es una estimación: Google" +
+    " Flights cotiza un adulto y aquí se multiplica por " + pax + ", así que" +
+    " el precio real será ese o algo menos, nunca más."
+  : "";
 
 const tb = document.querySelector("#t tbody");
 (DATA.tarifas_actuales || []).forEach((t, i) => {
@@ -197,10 +241,8 @@ let notaVuelos = "";
 if (!vb.rows.length) {
   vacio(vb, 6, ultimo.detalle_vuelos || "Todavía no hay vuelos a la venta.");
 } else {
-  const v0 = (DATA.ofertas_vuelos || [])[0] || {};
-  notaVuelos = "Ida y vuelta " + (v0.ida || "") + " → " + (v0.vuelta || "") +
-    ", precio por adulto. Google Flights cotiza un pasajero: para 2 adultos y" +
-    " un niño cuenta algo menos del triple. Leído el " +
+  notaVuelos = "Solo directos, precio por adulto. Google Flights cotiza un" +
+    " pasajero: para " + pax + " cuenta algo menos del triple. Leído el " +
     (DATA.vuelos_actualizado || "") + ".";
 }
 document.getElementById("vNota").textContent = notaVuelos;
