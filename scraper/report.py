@@ -46,6 +46,7 @@ td { padding:9px 10px; border-bottom:1px solid #f1ede7; white-space:nowrap; }
 tr:last-child td { border-bottom:none; }
 .num { font-variant-numeric:tabular-nums; }
 .best { background:#f4f9f5; font-weight:650; }
+.tenue { color:#8a8279; }
 .nota { color:#8a8279; font-size:12px; margin:12px 0 0; white-space:normal; }
 .chartbox { height:250px; position:relative; }
 a { color:#1f5f9e; text-decoration:none; }
@@ -92,6 +93,12 @@ solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
 <th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table></div>
 <p class="nota" id="oNota"></p></div>
 
+<h2>Vuelos (vía Google Flights)</h2>
+<div class="card"><div class="tabla"><table id="v"><thead><tr>
+<th>Aerolínea</th><th>Horario</th><th>Duración</th><th>Escalas</th>
+<th>Destino</th><th>€/adulto</th></tr></thead><tbody></tbody></table></div>
+<p class="nota" id="vNota"></p></div>
+
 <footer>Actualizado automáticamente por GitHub Actions ·
 <a href="https://www.landmarhotels.com/es/landmar-costa-los-gigantes.html">web del hotel</a>
 </footer>
@@ -100,6 +107,10 @@ solo cancelación gratuita · obligatorio estar la noche del 8 de agosto</p>
 const DATA = __DATOS__;
 const eur = n => n == null ? "—" :
   new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n);
+const vacio = (tb, n, msg) => {
+  tb.insertRow().innerHTML = '<td colspan="' + n + '" style="color:#8a8279;' +
+    'text-align:center;padding:24px;white-space:normal">' + msg + '</td>';
+};
 
 const mejor = DATA.mejor_precio_historico;
 document.getElementById("kBest").textContent = eur(mejor && mejor.por_noche);
@@ -133,43 +144,77 @@ const tb = document.querySelector("#t tbody");
     '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(t.por_noche) + '</td>' +
     '<td class="num">' + eur(t.total) + '</td>';
 });
-if (!tb.rows.length) {
-  tb.insertRow().innerHTML = '<td colspan="6" style="color:#8a8279;text-align:center;' +
-    'padding:24px">Sin tarifas leídas en la última pasada.</td>';
-}
+if (!tb.rows.length) vacio(tb, 6, "Sin tarifas leídas en la última pasada.");
 
+// --- otras webs ---------------------------------------------------------
+// Google devuelve el precio agregado del hotel en la búsqueda por zona, pero
+// el desglose por web solo en la ficha. Si el desglose falta, se enseña igual
+// el agregado: antes se mostraba "no publica precios" teniendo el dato.
 const ob = document.querySelector("#o tbody");
+let filasOta = 0;
 (DATA.ofertas_otas || []).forEach(v => {
-  (v.fuentes || []).forEach((f, i) => {
+  const fuentes = v.fuentes || [];
+  if (fuentes.length) {
+    fuentes.forEach((f, i) => {
+      const tr = ob.insertRow();
+      tr.innerHTML = '<td class="num">' + v.entrada + '</td>' +
+        '<td class="num">' + v.salida + '</td>' +
+        '<td class="num">' + v.noches + '</td>' +
+        '<td>' + f.web + '</td>' +
+        '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(f.por_noche) + '</td>' +
+        '<td class="num">' + eur(f.total) + '</td>';
+      filasOta++;
+    });
+  } else if (v.por_noche != null) {
     const tr = ob.insertRow();
     tr.innerHTML = '<td class="num">' + v.entrada + '</td>' +
       '<td class="num">' + v.salida + '</td>' +
       '<td class="num">' + v.noches + '</td>' +
-      '<td>' + f.web + '</td>' +
-      '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(f.por_noche) + '</td>' +
-      '<td class="num">' + eur(f.total) + '</td>';
-  });
+      '<td class="tenue">Google Hotels (mejor precio)</td>' +
+      '<td class="num best">' + eur(v.por_noche) + '</td>' +
+      '<td class="num">' + eur(v.total) + '</td>';
+    filasOta++;
+  }
 });
-// Tres estados distintos, que antes se confundían en uno solo.
 let notaOtas = "";
-if (!ob.rows.length) {
-  let msg;
+if (!filasOta) {
   if (!DATA.otas_comprobado) {
-    msg = 'Pendiente de configurar el secreto SERPAPI_KEY.';
+    vacio(ob, 6, "Pendiente de configurar el secreto SERPAPI_KEY.");
   } else {
-    msg = 'Google Hotels todavía no publica precios para estas fechas.';
+    vacio(ob, 6, "Google Hotels todavía no publica precios para estas fechas.");
     notaOtas = "Su calendario llega a unos 11 meses vista, así que agosto de 2027" +
       " entrará hacia septiembre de 2026. Se reintenta cada día. Última" +
       " comprobación: " + DATA.otas_comprobado + ".";
   }
-  ob.insertRow().innerHTML = '<td colspan="6" style="color:#8a8279;text-align:center;' +
-    'padding:24px;white-space:normal">' + msg + '</td>';
 } else {
-  notaOtas = "Consultado el " + DATA.otas_actualizado + " · una vez al día." +
-    " Precios orientativos de Google Hotels; confírmalos en la web" +
-    " correspondiente antes de reservar.";
+  notaOtas = "Consultado el " + (DATA.otas_actualizado || DATA.otas_comprobado) +
+    " · una vez al día. Precios orientativos de Google Hotels; confírmalos en" +
+    " la web correspondiente antes de reservar.";
 }
 document.getElementById("oNota").textContent = notaOtas;
+
+// --- vuelos -------------------------------------------------------------
+const vb = document.querySelector("#v tbody");
+(DATA.ofertas_vuelos || []).forEach((f, i) => {
+  const tr = vb.insertRow();
+  tr.innerHTML = '<td>' + f.aerolinea + '</td>' +
+    '<td class="num">' + (f.horario || "—") + '</td>' +
+    '<td class="num">' + (f.duracion || "—") + '</td>' +
+    '<td>' + (f.escalas || "—") + '</td>' +
+    '<td class="num">' + f.destino + '</td>' +
+    '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(f.precio) + '</td>';
+});
+let notaVuelos = "";
+if (!vb.rows.length) {
+  vacio(vb, 6, ultimo.detalle_vuelos || "Todavía no hay vuelos a la venta.");
+} else {
+  const v0 = (DATA.ofertas_vuelos || [])[0] || {};
+  notaVuelos = "Ida y vuelta " + (v0.ida || "") + " → " + (v0.vuelta || "") +
+    ", precio por adulto. Google Flights cotiza un pasajero: para 2 adultos y" +
+    " un niño cuenta algo menos del triple. Leído el " +
+    (DATA.vuelos_actualizado || "") + ".";
+}
+document.getElementById("vNota").textContent = notaVuelos;
 
 const pts = (DATA.registros || []).filter(r => r.mejor_por_noche != null);
 if (pts.length) {
@@ -199,6 +244,8 @@ def generar(datos: dict, destino: Path) -> None:
         "ofertas_otas": datos.get("ofertas_otas", []),
         "otas_actualizado": datos.get("otas_actualizado"),
         "otas_comprobado": datos.get("otas_comprobado"),
+        "ofertas_vuelos": datos.get("ofertas_vuelos", []),
+        "vuelos_actualizado": datos.get("vuelos_actualizado"),
         "registros": [
             {"fecha": r["fecha"],
              "mejor_por_noche": r.get("mejor_por_noche"),
