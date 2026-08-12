@@ -4,6 +4,13 @@ Se compara SIEMPRE por €/noche, no por total. Con la duración flexible (5 a 9
 noches) los totales no son comparables entre sí: una estancia de 5 noches sale
 más barata que una de 7 sin que el hotel haya bajado un céntimo. Comparar por
 total hacía que el histórico marcase "bajadas" que no existían.
+
+Orden de la pasada
+------------------
+Primero el hotel, porque de sus mejores opciones salen las fechas para las que
+merece la pena cotizar vuelos. Antes los vuelos se pedían siempre para la
+ventana de 7 noches, y como las estancias baratas son de 8 y 9, el precio del
+vuelo nunca correspondía a la estancia buena y no se podía sumar el viaje.
 """
 
 from __future__ import annotations
@@ -12,13 +19,13 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
 from . import config as cfg
-from . import landmar, notify, otas, report, vuelos
+from . import combinar, landmar, notify, otas, report, vuelos
 
 RAIZ = Path(__file__).resolve().parent.parent
 HISTORICO = RAIZ / "data" / "historico.json"
@@ -56,8 +63,8 @@ def guardar_historico(datos: dict) -> None:
     )
 
 
-def rastrear() -> tuple[list[dict], bool, str, list[dict]]:
-    """Devuelve (tarifas, vuelos_abiertos, detalle_vuelos, ofertas_vuelos)."""
+def rastrear_hotel() -> list[dict]:
+    """Todas las tarifas del hotel para las ventanas de fechas válidas."""
     tarifas: list[dict] = []
     max_ventanas = int(os.environ.get("MAX_VENTANAS", "35"))
     ventanas = cfg.ventanas_validas()[:max_ventanas]
@@ -90,9 +97,7 @@ def rastrear() -> tuple[list[dict], bool, str, list[dict]]:
         contexto.close()
         navegador.close()
 
-    abiertos, detalle, ofertas_vuelos = vuelos.venta_abierta()
-
-    return tarifas, abiertos, detalle, ofertas_vuelos
+    return tarifas
 
 
 def _toca_otas(datos: dict, sello: datetime) -> bool:
@@ -122,16 +127,44 @@ def _mejores_por_grupo(tarifas: list[dict], tope: int = 15) -> list[dict]:
     return sorted(mejores.values(), key=lambda t: t["por_noche"])[:tope]
 
 
+def _ventanas_de(tarifas: list[dict], tope: int) -> list[tuple[date, date, int]]:
+    """Fechas de las mejores tarifas, sin repetir, para ir a cotizar vuelos."""
+    ventanas: list[tuple[date, date, int]] = []
+    vistas: set[tuple[str, str]] = set()
+    for t in tarifas:
+        clave = (t["entrada"], t["salida"])
+        if clave in vistas:
+            continue
+        vistas.add(clave)
+        ventanas.append((date.fromisoformat(t["entrada"]),
+                         date.fromisoformat(t["salida"]),
+                         t["noches"]))
+        if len(ventanas) >= tope:
+            break
+    return ventanas
+
+
 def main() -> int:
     datos = cargar_historico()
-    tarifas, abiertos, detalle, ofertas_vuelos = rastrear()
 
+    tarifas = rastrear_hotel()
     validas = [
         t for t in tarifas
         if t["cancelable"] and cfg.REGIMEN_TI.lower() in t["regimen"].lower()
     ]
     # El mejor es el de menor precio POR NOCHE, no el de menor total.
     mejor = min(validas, key=lambda t: t["por_noche"]) if validas else None
+    mejores = _mejores_por_grupo(validas)
+
+    # Los vuelos se cotizan para las fechas de las mejores estancias, no para
+    # una ventana fija: así el total del viaje corresponde a algo reservable.
+    log.info("Cotizando vuelos para las mejores fechas del hotel")
+    abiertos, detalle, ofertas_vuelos = vuelos.buscar(
+        _ventanas_de(mejores, cfg.MAX_VENTANAS_VUELOS)
+    )
+    log.info("Vuelos: %s (%s)", abiertos, detalle)
+
+    combinaciones = combinar.calcular(mejores, ofertas_vuelos)
 
     historico = datos.get("mejor_precio_historico") or {}
     anterior = historico.get("por_noche") or REFERENCIA_NOCHE
@@ -161,6 +194,7 @@ def main() -> int:
         "mejor_por_noche": mejor["por_noche"] if mejor else None,
         "mejor_total": mejor["total"] if mejor else None,
         "mejor_detalle": mejor,
+        "mejor_viaje": combinaciones[0]["total"] if combinaciones else None,
         "tarifas_encontradas": len(validas),
         "vuelos_abiertos": abiertos,
         "detalle_vuelos": detalle,
@@ -168,9 +202,11 @@ def main() -> int:
     datos["vuelos_abiertos"] = abiertos
     datos["ofertas_vuelos"] = ofertas_vuelos
     datos["vuelos_actualizado"] = sello.strftime("%Y-%m-%d %H:%M")
+    datos["combinaciones"] = combinaciones
+    datos["pasajeros"] = cfg.PASAJEROS
     datos["referencia_noche"] = round(REFERENCIA_NOCHE, 2)
     datos["ultima_comprobacion"] = sello.strftime("%Y-%m-%d %H:%M")
-    datos["tarifas_actuales"] = _mejores_por_grupo(validas)
+    datos["tarifas_actuales"] = mejores
 
     # --- avisos ------------------------------------------------------
     url_hotel = cfg.HOTEL_URL
@@ -190,8 +226,9 @@ def main() -> int:
 
     guardar_historico(datos)
     report.generar(datos, RAIZ / "docs" / "index.html")
-    log.info("Listo. Mejor: %s €/noche",
-             f"{mejor['por_noche']:.0f}" if mejor else "sin datos")
+    log.info("Listo. Mejor hotel: %s EUR/noche. Mejor viaje completo: %s EUR",
+             f"{mejor['por_noche']:.0f}" if mejor else "sin datos",
+             f"{combinaciones[0]['total']:.0f}" if combinaciones else "sin datos")
     return 0
 
 
