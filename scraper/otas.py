@@ -17,8 +17,7 @@ La solución es buscar por zona y localizar nuestro hotel entre los resultados.
 Por qué hacen falta DOS llamadas
 --------------------------------
 La búsqueda por zona sí trae el hotel y su precio agregado, pero cada propiedad
-del listado viene sin el campo `prices`, que es el desglose por web. En la
-pasada del 12-ago-2026 el log lo dejó claro:
+del listado viene sin el campo `prices`, que es el desglose por web:
 
     OTAs ... -> 20 propiedades
     OTAs: hotel localizado
@@ -106,7 +105,7 @@ def _pedir(clave: str, entrada: date, salida: date, **extra) -> dict | None:
         params["children_ages"] = str(cfg.EDAD_NINO)
     params.update(extra)
 
-    etiqueta = extra.get("q") or "ficha del hotel"
+    etiqueta = "ficha del hotel" if extra.get("property_token") else extra.get("q", "?")
 
     try:
         r = requests.get(ENDPOINT, params=params, timeout=TIMEOUT)
@@ -121,7 +120,10 @@ def _pedir(clave: str, entrada: date, salida: date, **extra) -> dict | None:
         log.warning("OTAs: cuota de SerpApi agotada (429)")
         return None
     if r.status_code >= 400:
-        log.warning("OTAs: HTTP %s con '%s'", r.status_code, etiqueta)
+        # Se incluye el cuerpo: SerpApi explica ahí qué parámetro falta, y sin
+        # eso un 400 obliga a adivinar (nos costó una pasada entera).
+        log.warning("OTAs: HTTP %s con '%s' - %s",
+                    r.status_code, etiqueta, r.text[:200])
         return None
 
     try:
@@ -157,10 +159,15 @@ def _fuentes_de(bloques: list[dict], noches: int) -> list[dict]:
     return fuentes
 
 
-def _desglose(clave: str, token: str, entrada: date, salida: date,
-              noches: int) -> list[dict]:
-    """Segunda llamada: la ficha del hotel, que sí trae el precio por web."""
-    datos = _pedir(clave, entrada, salida, property_token=token)
+def _desglose(clave: str, token: str, consulta: str, entrada: date,
+              salida: date, noches: int) -> list[dict]:
+    """Segunda llamada: la ficha del hotel, que sí trae el precio por web.
+
+    OJO con `q`: el motor google_hotels lo exige SIEMPRE, también cuando se
+    pide una ficha concreta con property_token. La primera versión mandaba
+    solo el token y SerpApi respondía 400 sin más explicación.
+    """
+    datos = _pedir(clave, entrada, salida, q=consulta, property_token=token)
     if not datos:
         return []
 
@@ -183,6 +190,7 @@ def _desglose(clave: str, token: str, entrada: date, salida: date,
 
 def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | None:
     hotel = None
+    consulta_buena = CONSULTAS[0]
     for consulta in CONSULTAS:
         datos = _pedir(clave, entrada, salida, q=consulta)
         if datos is None:
@@ -194,6 +202,7 @@ def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | N
             continue
         hotel = _nuestro_hotel(props)
         if hotel:
+            consulta_buena = consulta
             log.info("OTAs: hotel localizado con la consulta '%s'", consulta)
             break
         nombres = " | ".join((p.get("name") or "?") for p in props[:6])
@@ -217,7 +226,7 @@ def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | N
     fuentes = []
     token = hotel.get("property_token")
     if token:
-        fuentes = _desglose(clave, token, entrada, salida, noches)
+        fuentes = _desglose(clave, token, consulta_buena, entrada, salida, noches)
     else:
         log.warning("OTAs: el hotel viene sin property_token; sin desglose por web")
 
