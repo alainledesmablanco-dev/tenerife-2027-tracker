@@ -13,14 +13,29 @@ identifica un hotel concreto, Google no devuelve un listado sino la ficha de
 ese hotel, y en ese modo el campo `properties` viene vacío.
 
 La solución es buscar por zona y localizar nuestro hotel entre los resultados.
-Como no está garantizado qué formulación funciona mejor, se prueban varias en
-orden y se registra cuál dio resultados, para poder fijarla más adelante.
+
+Por qué hacen falta DOS llamadas
+--------------------------------
+La búsqueda por zona sí trae el hotel y su precio agregado, pero cada propiedad
+del listado viene sin el campo `prices`, que es el desglose por web. En la
+pasada del 12-ago-2026 el log lo dejó claro:
+
+    OTAs ... -> 20 propiedades
+    OTAs: hotel localizado
+    OTAs 2026-09-02 -> 2026-09-09: mejor 425 EUR/noche (2972 EUR total), 0 webs
+
+Había precio y no había desglose, y el panel, que solo pintaba filas por web,
+mostraba "Google Hotels todavía no publica precios" teniendo el dato delante.
+
+El desglose vive en la ficha del hotel, que se pide con su `property_token`.
+De ahí la segunda llamada. Y si esa segunda llamada falla, se guarda igual el
+precio agregado: es mejor enseñar "Google Hotels: 425 EUR/noche" que nada.
 
 Presupuesto
 -----------
-El plan gratuito de SerpApi son 250 búsquedas/mes. Con MAX_VENTANAS_OTAS=1 y
-como mucho 3 consultas de reserva, el tope son 3 al día ≈ 90 al mes. En cuanto
-una consulta localiza el hotel se corta: las siguientes no se lanzan.
+El plan gratuito de SerpApi son 250 búsquedas/mes. Con MAX_VENTANAS_OTAS=1, una
+consulta de zona (normalmente la primera acierta) más la ficha, salen 2 al día
+≈ 60 al mes. El tope absoluto, si fallaran las dos primeras zonas, son 4.
 
 Secreto que usa:
     SERPAPI_KEY    clave de serpapi.com (plan gratuito)
@@ -74,11 +89,10 @@ def _nuestro_hotel(propiedades: list[dict]) -> dict | None:
     return None
 
 
-def _pedir(consulta: str, clave: str, entrada: date, salida: date) -> list[dict] | None:
-    """Una llamada a la API. Devuelve la lista de propiedades, o None si falló."""
+def _pedir(clave: str, entrada: date, salida: date, **extra) -> dict | None:
+    """Una llamada a la API. Devuelve el JSON completo, o None si falló."""
     params = {
         "engine": "google_hotels",
-        "q": consulta,
         "check_in_date": entrada.isoformat(),
         "check_out_date": salida.isoformat(),
         "adults": cfg.ADULTOS,
@@ -90,11 +104,14 @@ def _pedir(consulta: str, clave: str, entrada: date, salida: date) -> list[dict]
     if cfg.NINOS:
         params["children"] = cfg.NINOS
         params["children_ages"] = str(cfg.EDAD_NINO)
+    params.update(extra)
+
+    etiqueta = extra.get("q") or "ficha del hotel"
 
     try:
         r = requests.get(ENDPOINT, params=params, timeout=TIMEOUT)
     except Exception as exc:  # noqa: BLE001
-        log.warning("OTAs: fallo de red con '%s' (%s)", consulta, exc)
+        log.warning("OTAs: fallo de red con '%s' (%s)", etiqueta, exc)
         return None
 
     if r.status_code == 401:
@@ -104,30 +121,75 @@ def _pedir(consulta: str, clave: str, entrada: date, salida: date) -> list[dict]
         log.warning("OTAs: cuota de SerpApi agotada (429)")
         return None
     if r.status_code >= 400:
-        log.warning("OTAs: HTTP %s con '%s'", r.status_code, consulta)
+        log.warning("OTAs: HTTP %s con '%s'", r.status_code, etiqueta)
         return None
 
     try:
         datos = r.json()
     except ValueError:
-        log.warning("OTAs: respuesta no es JSON con '%s'", consulta)
+        log.warning("OTAs: respuesta no es JSON con '%s'", etiqueta)
         return None
 
     if datos.get("error"):
-        log.warning("OTAs: la API devuelve error con '%s': %s", consulta, datos["error"])
+        log.warning("OTAs: la API devuelve error con '%s': %s", etiqueta, datos["error"])
         return None
 
-    return datos.get("properties") or []
+    return datos
+
+
+def _fuentes_de(bloques: list[dict], noches: int) -> list[dict]:
+    """Convierte la lista `prices` de Google en filas web/precio."""
+    fuentes = []
+    for oferta in bloques or []:
+        pn = _extraer(oferta.get("rate_per_night"))
+        tt = _extraer(oferta.get("total_rate"))
+        if tt is None and pn is not None and noches:
+            tt = round(pn * noches, 2)
+        if pn is None and tt is not None and noches:
+            pn = round(tt / noches, 2)
+        if pn is None and tt is None:
+            continue
+        fuentes.append({
+            "web": oferta.get("source") or "?",
+            "por_noche": pn,
+            "total": tt,
+        })
+    return fuentes
+
+
+def _desglose(clave: str, token: str, entrada: date, salida: date,
+              noches: int) -> list[dict]:
+    """Segunda llamada: la ficha del hotel, que sí trae el precio por web."""
+    datos = _pedir(clave, entrada, salida, property_token=token)
+    if not datos:
+        return []
+
+    fuentes = _fuentes_de(datos.get("prices"), noches)
+    fuentes += _fuentes_de(datos.get("featured_prices"), noches)
+
+    # La misma web puede venir en las dos listas; nos quedamos con la barata.
+    mejores: dict[str, dict] = {}
+    for f in fuentes:
+        actual = mejores.get(f["web"])
+        if actual is None or (f["por_noche"] or 1e9) < (actual["por_noche"] or 1e9):
+            mejores[f["web"]] = f
+
+    orden = sorted(mejores.values(),
+                   key=lambda f: f["por_noche"] if f["por_noche"] is not None else 1e9)
+    log.info("OTAs: la ficha del hotel devuelve %d webs (%s)",
+             len(orden), ", ".join(f["web"] for f in orden[:6]) or "ninguna")
+    return orden
 
 
 def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | None:
     hotel = None
     for consulta in CONSULTAS:
-        props = _pedir(consulta, clave, entrada, salida)
-        if props is None:
+        datos = _pedir(clave, entrada, salida, q=consulta)
+        if datos is None:
             # Error de red o de la API: no tiene sentido gastar más consultas.
             return None
-        log.info("OTAs '%s' → %d propiedades", consulta, len(props))
+        props = datos.get("properties") or []
+        log.info("OTAs '%s' -> %d propiedades", consulta, len(props))
         if not props:
             continue
         hotel = _nuestro_hotel(props)
@@ -138,7 +200,7 @@ def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | N
         log.info("OTAs: no está entre los resultados. Primeros: %s", nombres)
 
     if not hotel:
-        log.info("OTAs %s → %s: ninguna consulta localizó el hotel", entrada, salida)
+        log.info("OTAs %s -> %s: ninguna consulta localizó el hotel", entrada, salida)
         return None
 
     total = _extraer(hotel.get("total_rate"))
@@ -148,28 +210,18 @@ def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | N
     if por_noche is None and total is not None:
         por_noche = round(total / noches, 2) if noches else None
     if total is None:
-        log.info("OTAs: encontrado '%s' pero sin precio para %s → %s",
+        log.info("OTAs: encontrado '%s' pero sin precio para %s -> %s",
                  hotel.get("name"), entrada, salida)
         return None
 
-    # Desglose por web. Google da el precio por noche de cada fuente; el total
-    # lo calculamos nosotros si no viene.
     fuentes = []
-    for oferta in hotel.get("prices") or []:
-        pn = _extraer(oferta.get("rate_per_night"))
-        tt = _extraer(oferta.get("total_rate"))
-        if tt is None and pn is not None and noches:
-            tt = round(pn * noches, 2)
-        if pn is None and tt is None:
-            continue
-        fuentes.append({
-            "web": oferta.get("source") or "?",
-            "por_noche": pn,
-            "total": tt,
-        })
-    fuentes.sort(key=lambda f: f["por_noche"] if f["por_noche"] is not None else 1e9)
+    token = hotel.get("property_token")
+    if token:
+        fuentes = _desglose(clave, token, entrada, salida, noches)
+    else:
+        log.warning("OTAs: el hotel viene sin property_token; sin desglose por web")
 
-    log.info("OTAs %s → %s: mejor %.0f €/noche (%.0f € total), %d webs",
+    log.info("OTAs %s -> %s: mejor %.0f EUR/noche (%.0f EUR total), %d webs",
              entrada, salida, por_noche or 0, total, len(fuentes))
 
     return {
