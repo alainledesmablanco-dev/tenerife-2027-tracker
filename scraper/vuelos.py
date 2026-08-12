@@ -73,7 +73,10 @@ PRECIO_DETRAS = re.compile(r"(\d[\d.,]*)\s*€")
 HORA_RE = re.compile(
     r"\d{1,2}:\d{2}\s*(?:AM|PM)?\s*[–—\-−]\s*\d{1,2}:\d{2}\s*(?:AM|PM)?", re.I
 )
-UNA_HORA_RE = re.compile(r"^\d{1,2}:\d{2}\s*(?:AM|PM)?$", re.I)
+# El "+1" es el "llega al día siguiente" de Google. Sin contemplarlo, la línea
+# "5:15 PM+1" se colaba como si fuera el nombre de la aerolínea.
+UNA_HORA_RE = re.compile(r"^\d{1,2}:\d{2}\s*(?:AM|PM)?(?:\s*\+\d)?$", re.I)
+OPERADO_RE = re.compile(r"\s*Operated by\s*|\s*Operado por\s*", re.I)
 DURACION_RE = re.compile(r"\b(\d+)\s*hr\b(?:\s*(\d+)\s*min)?|\b(\d+)\s*h\s*(\d+)?", re.I)
 DIRECTO_RE = re.compile(r"\bnonstop\b|\bdirecto\b", re.I)
 ESCALAS_RE = re.compile(r"\b(\d+)\s*(?:stops?|escalas?)\b", re.I)
@@ -158,6 +161,19 @@ def _es_aerolinea(linea: str) -> bool:
     return not any(bajo.startswith(d) for d in descartes)
 
 
+def _limpiar_aerolinea(nombre: str) -> str:
+    """Deja el nombre legible.
+
+    Google mete varios trozos en el mismo nodo y al leer el texto salen
+    pegados: "IberiaOperated by Iberia Express" o "VuelingIberia" (un código
+    compartido entre dos compañías). Se corta por el "operado por" y se separan
+    las mayúsculas pegadas a una minúscula, que es donde estaba la costura.
+    """
+    nombre = OPERADO_RE.split(nombre)[0]
+    nombre = re.sub(r"(?<=[a-z])(?=[A-Z])", " · ", nombre)
+    return nombre.strip(" ·,") or "?"
+
+
 def _escalas(bloque: str) -> str:
     if DIRECTO_RE.search(bloque):
         return "directo"
@@ -221,7 +237,7 @@ def _ofertas(tarjetas: list[str], destino: str) -> list[dict]:
         aerolinea = next((l for l in lineas if _es_aerolinea(l)), "?")
 
         ofertas.append({
-            "aerolinea": aerolinea,
+            "aerolinea": _limpiar_aerolinea(aerolinea),
             "precio": min(_precios(bloque)),
             "horario": _horario(bloque),
             "duracion": _duracion(bloque),
