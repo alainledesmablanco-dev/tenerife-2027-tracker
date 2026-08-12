@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-08-12 09:34",
+  "ultima_comprobacion": "2026-08-12 14:25",
   "tarifas_actuales": [
     {
       "entrada": "2026-09-02",
@@ -21,9 +21,9 @@
       "noches": 9,
       "habitacion": "Suite",
       "regimen": "Todo Incluido Plus",
-      "total": 2456.0,
-      "por_noche": 272.0,
-      "antes": 2729.0,
+      "total": 2457.0,
+      "por_noche": 273.0,
+      "antes": 2730.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
@@ -34,9 +34,9 @@
       "noches": 8,
       "habitacion": "Suite",
       "regimen": "Todo Incluido Plus",
-      "total": 2198.0,
+      "total": 2199.0,
       "por_noche": 274.0,
-      "antes": 2443.0,
+      "antes": 2444.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
@@ -47,9 +47,9 @@
       "noches": 9,
       "habitacion": "Suite Ocean View",
       "regimen": "Todo Incluido Plus",
-      "total": 2619.0,
+      "total": 2620.0,
       "por_noche": 291.0,
-      "antes": 2911.0,
+      "antes": 2912.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
@@ -60,9 +60,9 @@
       "noches": 8,
       "habitacion": "Suite Ocean View",
       "regimen": "Todo Incluido Plus",
-      "total": 2341.0,
+      "total": 2342.0,
       "por_noche": 292.0,
-      "antes": 2602.0,
+      "antes": 2603.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
@@ -73,9 +73,9 @@
       "noches": 7,
       "habitacion": "Suite",
       "regimen": "Todo Incluido Plus",
-      "total": 2053.0,
+      "total": 2054.0,
       "por_noche": 293.0,
-      "antes": 2162.0,
+      "antes": 2163.0,
       "descuento": "-5%",
       "cancelable": true,
       "codigo_promo": null
@@ -86,9 +86,9 @@
       "noches": 7,
       "habitacion": "Suite Ocean View",
       "regimen": "Todo Incluido Plus",
-      "total": 2182.0,
+      "total": 2183.0,
       "por_noche": 311.0,
-      "antes": 2297.0,
+      "antes": 2298.0,
       "descuento": "-5%",
       "cancelable": true,
       "codigo_promo": null
@@ -99,9 +99,9 @@
       "noches": 9,
       "habitacion": "• Regalo sorpresa para los niños",
       "regimen": "Todo Incluido Plus",
-      "total": 3027.0,
+      "total": 3028.0,
       "por_noche": 336.0,
-      "antes": 3364.0,
+      "antes": 3365.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
@@ -112,9 +112,9 @@
       "noches": 8,
       "habitacion": "• Regalo sorpresa para los niños",
       "regimen": "Todo Incluido Plus",
-      "total": 2704.0,
+      "total": 2705.0,
       "por_noche": 338.0,
-      "antes": 3005.0,
+      "antes": 3006.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
@@ -125,9 +125,9 @@
       "noches": 7,
       "habitacion": "• Regalo sorpresa para los niños",
       "regimen": "Todo Incluido Plus",
-      "total": 2516.0,
+      "total": 2517.0,
       "por_noche": 359.0,
-      "antes": 2649.0,
+      "antes": 2650.0,
       "descuento": "-5%",
       "cancelable": true,
       "codigo_promo": null
@@ -419,11 +419,53 @@
       "tarifas_encontradas": 18,
       "vuelos_abiertos": true,
       "detalle_vuelos": "Desde 63 € por adulto, ida y vuelta 02/09–09/09 (BIO→TFS, Google Flights)"
+    },
+    {
+      "fecha": "2026-08-12 14:25",
+      "mejor_por_noche": 273.0,
+      "mejor_total": 2457.0,
+      "mejor_detalle": {
+        "entrada": "2026-09-02",
+        "salida": "2026-09-11",
+        "noches": 9,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2457.0,
+        "por_noche": 273.0,
+        "antes": 2730.0,
+        "descuento": "-10%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "tarifas_encontradas": 18,
+      "vuelos_abiertos": true,
+      "detalle_vuelos": "Desde 73 € por adulto con ? (?), ida y vuelta 02/09–09/09 BIO→TFS"
     }
   ],
-  "ofertas_vuelos": [],
+  "ofertas_vuelos": [
+    {
+      "aerolinea": "?",
+      "precio": 73.0,
+      "horario": "?",
+      "duracion": null,
+      "escalas": "?",
+      "destino": "TFS",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    },
+    {
+      "aerolinea": "?",
+      "precio": 152.0,
+      "horario": "?",
+      "duracion": null,
+      "escalas": "?",
+      "destino": "TFN",
+      "ida": "2026-09-02",
+      "vuelta": "2026-09-09"
+    }
+  ],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-08-12 01:33",
+  "otas_comprobado": "2026-08-12 14:25",
   "ofertas_otas": [
     {
       "entrada": "2026-09-02",
@@ -431,9 +473,10 @@
       "noches": 7,
       "hotel": "Hotel Landmar Costa Los Gigantes Family Resort",
       "por_noche": 425.0,
-      "total": 2972.0,
+      "total": 2973.0,
       "fuentes": []
     }
   ],
-    "otas_actualizado": "2026-08-11 01:33"
+  "otas_actualizado": "2026-08-12 14:25",
+  "vuelos_actualizado": "2026-08-12 14:25"
 }
