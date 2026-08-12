@@ -1,4 +1,4 @@
-"""Vuelos Bilbao → Tenerife, leídos de Google Flights.
+"""Vuelos directos Bilbao → Tenerife, leídos de Google Flights.
 
 Historia de este módulo
 -----------------------
@@ -19,7 +19,7 @@ falla, el detalle dice que no se pudo comprobar. Esa distinción es el motivo de
 que este archivo se haya reescrito: un aviso equivocado es peor que no avisar.
 
 `ofertas` es la lista de vuelos concretos, cada uno con aerolínea, precio,
-horario, duración y escalas.
+horario, duración, escalas y las fechas a las que corresponde.
 
 Cómo se leen las tarjetas
 -------------------------
@@ -334,9 +334,9 @@ def _consultar(page, codigo: str, nombre: str,
     ofertas = _ofertas(tarjetas, codigo)
     if ofertas:
         mejor = ofertas[0]
-        log.info("Vuelos %s->%s (%s): %d vuelos leídos de %d tarjetas, "
+        log.info("Vuelos %s->%s (%s) %s: %d vuelos de %d tarjetas, "
                  "el mejor %.0f EUR (%s, %s)",
-                 cfg.ORIGEN, codigo, nombre, len(ofertas), len(tarjetas),
+                 cfg.ORIGEN, codigo, nombre, ida, len(ofertas), len(tarjetas),
                  mejor["precio"], mejor["aerolinea"], mejor["escalas"])
         return ofertas, "ok"
 
@@ -367,17 +367,40 @@ def _consultar(page, codigo: str, nombre: str,
     return [], "no_leido"
 
 
-def venta_abierta(page=None, entrada=None, salida=None) -> tuple[bool, str, list[dict]]:
-    """¿Se pueden comprar ya los vuelos? Devuelve (abiertos, detalle, ofertas).
+def _solo_directos(ofertas: list[dict], codigo: str) -> list[dict]:
+    """Descarta los vuelos con escala si así está configurado.
 
-    Los parámetros existen por compatibilidad con la versión anterior; se
-    ignoran. El módulo abre su propio navegador porque main.py lo llama después
-    de cerrar el que usa para el hotel.
+    Con un niño de 5 años y 3-4 horas de vuelo, una escala convierte el viaje
+    en un día entero, así que no entran en la comparación. Se registra cuántos
+    se descartan para que no parezca que Google no devolvió nada.
     """
-    ventanas = cfg.ventanas_validas()
+    if not cfg.SOLO_VUELOS_DIRECTOS:
+        return ofertas
+    directos = [o for o in ofertas if o["escalas"] == "directo"]
+    descartados = len(ofertas) - len(directos)
+    if descartados:
+        log.info("Vuelos %s->%s: %d con escala descartados, quedan %d directos",
+                 cfg.ORIGEN, codigo, descartados, len(directos))
+    return directos
+
+
+def buscar(ventanas: list[tuple[date, date, int]] | None = None
+           ) -> tuple[bool, str, list[dict]]:
+    """Cotiza vuelos directos para varias ventanas de fechas.
+
+    Devuelve (abiertos, detalle, ofertas). Cada oferta lleva su `ida` y su
+    `vuelta` para poder casarla después con la tarifa de hotel de esas mismas
+    fechas y sacar el total del viaje.
+
+    Antes solo se miraba una ventana, la más parecida a 7 noches. Pero las
+    estancias que salen más baratas por noche son las de 8 y 9, así que sin
+    vuelos para esas fechas no había manera de calcular el viaje completo.
+    """
+    if ventanas is None:
+        ventanas = cfg.ventanas_validas()
+    ventanas = ventanas[:cfg.MAX_VENTANAS_VUELOS]
     if not ventanas:
         return False, "Sin ventana de fechas que consultar", []
-    ida, vuelta, _noches = ventanas[0]
 
     todas: list[dict] = []
     estados: list[str] = []
@@ -397,10 +420,14 @@ def venta_abierta(page=None, entrada=None, salida=None) -> tuple[bool, str, list
             )
             pagina = contexto.new_page()
 
-            for codigo, nombre in DESTINOS:
-                ofertas, estado = _consultar(pagina, codigo, nombre, ida, vuelta)
-                todas.extend(ofertas)
-                estados.append(estado)
+            for ida, vuelta, _noches in ventanas:
+                for codigo, nombre in DESTINOS:
+                    ofertas, estado = _consultar(pagina, codigo, nombre, ida, vuelta)
+                    estados.append(estado)
+                    for o in _solo_directos(ofertas, codigo):
+                        o["ida"] = ida.isoformat()
+                        o["vuelta"] = vuelta.isoformat()
+                        todas.append(o)
 
             contexto.close()
             navegador.close()
@@ -410,17 +437,21 @@ def venta_abierta(page=None, entrada=None, salida=None) -> tuple[bool, str, list
 
     if todas:
         todas.sort(key=lambda o: o["precio"])
-        for o in todas:
-            o["ida"] = ida.isoformat()
-            o["vuelta"] = vuelta.isoformat()
         mejor = todas[0]
         detalle = (
-            f"Desde {mejor['precio']:.0f} € por adulto con {mejor['aerolinea']} "
-            f"({mejor['escalas']}), ida y vuelta "
-            f"{ida.strftime('%d/%m')}-{vuelta.strftime('%d/%m')} "
-            f"{cfg.ORIGEN}-{mejor['destino']}"
+            f"Desde {mejor['precio']:.0f} € por adulto con {mejor['aerolinea']}, "
+            f"directo, ida y vuelta {mejor['ida']} → {mejor['vuelta']} "
+            f"({cfg.ORIGEN}→{mejor['destino']})"
         )
-        return True, detalle, todas[:20]
+        return True, detalle, todas[:30]
+
+    # Distinguir "no hay vuelos" de "los hay pero ninguno directo" evita que el
+    # panel diga que la venta está cerrada cuando en realidad está abierta.
+    if "ok" in estados and cfg.SOLO_VUELOS_DIRECTOS:
+        return False, (
+            "Hay vuelos a la venta, pero ninguno directo desde Bilbao "
+            "para esas fechas"
+        ), []
 
     if "sin_vuelos" in estados:
         return False, (
@@ -432,3 +463,8 @@ def venta_abierta(page=None, entrada=None, salida=None) -> tuple[bool, str, list
         "No se pudo leer Google Flights en esta pasada; se reintenta "
         "en la siguiente"
     ), []
+
+
+def venta_abierta(page=None, entrada=None, salida=None) -> tuple[bool, str, list[dict]]:
+    """Compatibilidad con la versión anterior: cotiza las ventanas por defecto."""
+    return buscar()
