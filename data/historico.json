@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": false,
-  "ultima_comprobacion": "2026-08-14 09:32",
+  "ultima_comprobacion": "2026-08-14 20:53",
   "tarifas_actuales": [
     {
       "entrada": "2027-08-08",
@@ -55,8 +55,8 @@
       "codigo_promo": null
     },
     {
-      "entrada": "2027-08-01",
-      "salida": "2027-08-09",
+      "entrada": "2027-08-05",
+      "salida": "2027-08-13",
       "noches": 8,
       "habitacion": "Suite Ocean View",
       "regimen": "Todo Incluido Plus",
@@ -133,27 +133,27 @@
       "codigo_promo": null
     },
     {
-      "entrada": "2027-08-02",
-      "salida": "2027-08-09",
+      "entrada": "2027-08-05",
+      "salida": "2027-08-12",
       "noches": 7,
       "habitacion": "Suite Ocean View",
       "regimen": "Todo Incluido Plus",
-      "total": 2112.0,
+      "total": 2113.0,
       "por_noche": 301.0,
-      "antes": 2347.0,
+      "antes": 2348.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
     },
     {
-      "entrada": "2027-08-03",
-      "salida": "2027-08-09",
+      "entrada": "2027-08-06",
+      "salida": "2027-08-12",
       "noches": 6,
       "habitacion": "Suite Ocean View",
       "regimen": "Todo Incluido Plus",
-      "total": 1811.0,
+      "total": 1810.0,
       "por_noche": 301.0,
-      "antes": 2013.0,
+      "antes": 2012.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
@@ -648,11 +648,33 @@
       "tarifas_encontradas": 140,
       "vuelos_abiertos": false,
       "detalle_vuelos": "No se pudo leer Google Flights en esta pasada; se reintenta en la siguiente"
+    },
+    {
+      "fecha": "2026-08-14 20:53",
+      "mejor_por_noche": 269.0,
+      "mejor_total": 2157.0,
+      "mejor_detalle": {
+        "entrada": "2027-08-08",
+        "salida": "2027-08-16",
+        "noches": 8,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2157.0,
+        "por_noche": 269.0,
+        "antes": 2538.0,
+        "descuento": "-15%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "mejor_viaje": null,
+      "tarifas_encontradas": 140,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "No se pudo leer Google Flights en esta pasada; se reintenta en la siguiente"
     }
   ],
   "ofertas_vuelos": [],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-08-14 09:32",
+  "otas_comprobado": "2026-08-14 20:53",
   "ofertas_otas": [
     {
       "entrada": "2026-09-02",
@@ -671,7 +693,7 @@
     }
   ],
   "otas_actualizado": "2026-08-12 14:52",
-  "vuelos_actualizado": "2026-08-14 09:32",
+  "vuelos_actualizado": "2026-08-14 20:53",
   "combinaciones": [],
   "pasajeros": 3
 }
