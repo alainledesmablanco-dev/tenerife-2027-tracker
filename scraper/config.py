@@ -60,15 +60,23 @@ PASAJEROS = ADULTOS + NINOS
 # (Tenerife Sur y Norte) de unos 30 s, así que subir esto alarga la pasada.
 MAX_VENTANAS_VUELOS = 3
 
-# Aerolíneas con ruta directa Bilbao-Tenerife que hay que vigilar.
-# La venta de agosto 2027 abre previsiblemente entre sep y nov de 2026.
+# Las UNICAS tres aerolineas que vuelan directo Bilbao-Tenerife (confirmado
+# por Alain el 15-ago-2026). Ryanair, Binter e Iberia se han quitado: no
+# operan la ruta, y tenerlas en la lista solo servia para buscar en balde.
+#
+# Cobertura de cada una:
+#   Volotea    -> modulo propio (volotea.py). Vuela a Tenerife SUR, a 45 min
+#                 del hotel, y solo miercoles y domingos.
+#   Vueling    -> via Google Flights, que si la indexa.
+#   Air Europa -> via Google Flights, que si la indexa.
+#
+# OJO: Google Flights falla desde los runners de GitHub Actions porque Google
+# bloquea las IPs de centro de datos. Mientras eso siga asi, Vueling y Air
+# Europa pueden quedarse sin cotizar aunque tengan billetes a la venta.
 AEROLINEAS = [
-    ("Vueling", "https://www.vueling.com/es"),
-    ("Ryanair", "https://www.ryanair.com/es/es"),
-    ("Binter Canarias", "https://www.bintercanarias.com/esp/"),
-    ("Iberia", "https://www.iberia.com/es/"),
-    ("Air Europa", "https://www.aireuropa.com/es/es"),
     ("Volotea", "https://www.volotea.com/es/"),
+    ("Vueling", "https://www.vueling.com/es"),
+    ("Air Europa", "https://www.aireuropa.com/es/es"),
 ]
 
 # --------------------------------------------------------------- otros
