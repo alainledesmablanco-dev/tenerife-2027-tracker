@@ -221,7 +221,11 @@ def main() -> int:
         datos["mejor_precio_historico"] = mejor
 
     # Resumen semanal (lunes por la mañana) aunque no haya novedades
-    if sello.weekday() == 0 and sello.hour < 12:
+    # FORZAR_AVISO existe para poder comprobar que el canal de Telegram sigue
+    # vivo. Sin el, el silencio de un martes cualquiera es indistinguible de un
+    # bot roto, y eso es justo lo que no quieres de un vigilante de precios.
+    forzado = os.environ.get("FORZAR_AVISO", "").strip().lower() in ("1", "true", "si")
+    if forzado or (sello.weekday() == 0 and sello.hour < 12):
         notify.enviar(notify.formatear_resumen(mejor, anterior, detalle))
 
     guardar_historico(datos)
