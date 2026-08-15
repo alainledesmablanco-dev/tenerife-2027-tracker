@@ -57,6 +57,7 @@ from urllib.parse import urlencode
 from playwright.sync_api import sync_playwright
 
 from . import config as cfg
+from . import volotea
 
 log = logging.getLogger(__name__)
 
@@ -428,6 +429,20 @@ def buscar(ventanas: list[tuple[date, date, int]] | None = None
                         o["ida"] = ida.isoformat()
                         o["vuelta"] = vuelta.isoformat()
                         todas.append(o)
+
+            # Volotea no se indexa en Google Flights en esta ruta. Sin esta
+            # consulta el rastreo daba "vuelos cerrados" mientras Volotea
+            # llevaba semanas vendiendo agosto de 2027.
+            try:
+                ofertas_v, detalle_v = volotea.buscar(pagina)
+                if ofertas_v:
+                    todas.extend(ofertas_v)
+                    estados.append("ok")
+                    log.info("Volotea: %d combinaciones. %s", len(ofertas_v), detalle_v)
+                else:
+                    log.info("Volotea: %s", detalle_v)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("Volotea: fallo leyendo su web (%s)", exc)
 
             contexto.close()
             navegador.close()
