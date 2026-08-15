@@ -5,7 +5,12 @@ on:
     # Horas UTC. España peninsular en verano es UTC+2 → 08:00 y 20:00 locales.
     - cron: "0 6 * * *"
     - cron: "0 18 * * *"
-  workflow_dispatch:        # botón "Run workflow" para lanzarlo a mano
+  workflow_dispatch:
+    inputs:
+      avisar:
+        description: "Enviar aviso a Telegram aunque no haya novedades"
+        type: boolean
+        default: true
 
 permissions:
   contents: write           # para guardar el histórico
@@ -45,7 +50,26 @@ jobs:
           MAX_VENTANAS: "35"
           # Una sola búsqueda de OTAs al día: 30 al mes de las 250 gratuitas.
           MAX_VENTANAS_OTAS: "1"
+          # En ejecucion manual manda el interruptor; las programadas van
+          # silenciosas salvo que haya novedad de verdad.
+          FORZAR_AVISO: ${{ inputs.avisar && '1' || '' }}
         run: python -m scraper.main
+
+      - name: Avisar si el rastreo fallo
+        if: failure()
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          URL_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # Un rastreador que se rompe en silencio es peor que no tenerlo.
+          if [ -n "$TELEGRAM_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            MSG="El rastreo de Tenerife ha fallado.%0ANo se han podido leer precios en esta pasada.%0A${URL_RUN}"
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+              -d chat_id="${TELEGRAM_CHAT_ID}" \
+              -d disable_web_page_preview=true \
+              -d "text=${MSG}" > /dev/null
+          fi
 
       - name: Guardar histórico
         run: |
