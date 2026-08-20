@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": false,
-  "ultima_comprobacion": "2026-08-19 20:32",
+  "ultima_comprobacion": "2026-08-20 08:52",
   "tarifas_actuales": [
     {
       "entrada": "2027-08-07",
@@ -912,11 +912,33 @@
       "tarifas_encontradas": 140,
       "vuelos_abiertos": false,
       "detalle_vuelos": "No se pudo leer Google Flights en esta pasada; se reintenta en la siguiente"
+    },
+    {
+      "fecha": "2026-08-20 08:52",
+      "mejor_por_noche": 270.0,
+      "mejor_total": 2165.0,
+      "mejor_detalle": {
+        "entrada": "2027-08-07",
+        "salida": "2027-08-15",
+        "noches": 8,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2165.0,
+        "por_noche": 270.0,
+        "antes": 2548.0,
+        "descuento": "-15%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "mejor_viaje": null,
+      "tarifas_encontradas": 140,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "No se pudo leer Google Flights en esta pasada; se reintenta en la siguiente"
     }
   ],
   "ofertas_vuelos": [],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-08-19 20:32",
+  "otas_comprobado": "2026-08-20 08:52",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -940,7 +962,7 @@
     }
   ],
   "otas_actualizado": "2026-08-18 20:39",
-  "vuelos_actualizado": "2026-08-19 20:32",
+  "vuelos_actualizado": "2026-08-20 08:52",
   "combinaciones": [],
   "pasajeros": 3
 }
