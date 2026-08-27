@@ -101,10 +101,10 @@ obligatorio estar la noche del 8 de agosto</p>
 <th>€/noche</th><th>Total</th></tr></thead><tbody></tbody></table></div>
 <p class="nota" id="oNota"></p></div>
 
-<h2>Vuelos directos (vía Google Flights)</h2>
+<h2>Vuelos directos Bilbao → Tenerife</h2>
 <div class="card"><div class="tabla"><table id="v"><thead><tr>
-<th>Aerolínea</th><th>Horario</th><th>Duración</th><th>Escalas</th>
-<th>Destino</th><th>€/adulto</th></tr></thead><tbody></tbody></table></div>
+<th>Aerolínea</th><th>Fechas</th><th>Horario</th><th>Duración</th>
+<th>Destino</th><th>Total 3 pax</th></tr></thead><tbody></tbody></table></div>
 <p class="nota" id="vNota"></p></div>
 
 <footer>Actualizado automáticamente por GitHub Actions ·
@@ -174,9 +174,9 @@ if (!cb.rows.length) {
 }
 document.getElementById("cNota").textContent = combis.length
   ? "Hotel para " + pax + " personas con Todo Incluido, más " + pax +
-    " billetes directos de ida y vuelta. El vuelo es una estimación: Google" +
-    " Flights cotiza un adulto y aquí se multiplica por " + pax + ", así que" +
-    " el precio real será ese o algo menos, nunca más."
+    " billetes directos de ida y vuelta, cotizados para 2 adultos y 1 niño." +
+    " No incluye equipaje facturado ni el coche de alquiler desde el" +
+    " aeropuerto, que es más caro desde Tenerife Norte que desde el Sur."
   : "";
 
 const tb = document.querySelector("#t tbody");
@@ -242,25 +242,34 @@ document.getElementById("oNota").textContent = notaOtas;
 const vb = document.querySelector("#v tbody");
 (DATA.ofertas_vuelos || []).forEach((f, i) => {
   const tr = vb.insertRow();
+  const total = f.precio_total || (f.precio * pax);
+  const fechas = (f.ida && f.vuelta) ? (f.ida.slice(5) + " → " + f.vuelta.slice(5)) : "—";
   tr.innerHTML = '<td>' + f.aerolinea + '</td>' +
+    '<td class="num">' + fechas + '</td>' +
     '<td class="num">' + (f.horario || "—") + '</td>' +
     '<td class="num">' + (f.duracion || "—") + '</td>' +
-    '<td>' + (f.escalas || "—") + '</td>' +
-    '<td class="num">' + f.destino + '</td>' +
-    '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(f.precio) + '</td>';
+    '<td class="num">' + (f.destino_nombre || f.destino) + '</td>' +
+    '<td class="num' + (i === 0 ? ' best' : '') + '">' + eur(total) + '</td>';
 });
 let notaVuelos = "";
 if (!vb.rows.length) {
   vacio(vb, 6, ultimo.detalle_vuelos || "Todavía no hay vuelos a la venta.");
 } else {
-  notaVuelos = "Solo directos, precio por adulto. Google Flights cotiza un" +
-    " pasajero: para " + pax + " cuenta algo menos del triple. Leído el " +
-    (DATA.vuelos_actualizado || "") + ".";
+  const fuentes = [...new Set((DATA.ofertas_vuelos || []).map(f => f.fuente).filter(Boolean))];
+  notaVuelos = "Solo vuelos directos, ida y vuelta, precio de los " + pax +
+    " pasajeros juntos. Volotea vuela a Tenerife SUR (~45 min del hotel) y solo" +
+    " miércoles y domingos; Vueling y Air Europa vuelan a Tenerife NORTE" +
+    " (~1 h 15 del hotel) a diario. Equipaje facturado aparte." +
+    (fuentes.length ? " Fuente: " + fuentes.join(", ") + "." : "") +
+    " Leído el " + (DATA.vuelos_actualizado || "—") + ".";
 }
 document.getElementById("vNota").textContent = notaVuelos;
 
+// Chart.js viene de un CDN. Si no carga —bloqueador de anuncios, red de
+// empresa, el CDN caido— el resto del panel tiene que seguir funcionando: la
+// grafica es lo accesorio, las tablas son el dato.
 const pts = (DATA.registros || []).filter(r => r.mejor_por_noche != null);
-if (pts.length) {
+if (pts.length && typeof Chart !== "undefined") {
   new Chart(document.getElementById("chart"), {
     type: "line",
     data: { labels: pts.map(p => p.fecha),
@@ -270,6 +279,14 @@ if (pts.length) {
       plugins: { legend: { display: false } },
       scales: { y: { ticks: { callback: v => v + " €/noche" } } } }
   });
+} else if (pts.length) {
+  const c = document.getElementById("chart");
+  if (c && c.parentNode) {
+    c.parentNode.innerHTML =
+      '<p class="nota">No se pudo cargar la librería de la gráfica. ' +
+      'El último precio registrado fue ' + pts[pts.length - 1].mejor_por_noche +
+      ' €/noche.</p>';
+  }
 }
 </script>
 </body>

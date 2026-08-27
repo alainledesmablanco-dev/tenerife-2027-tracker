@@ -1,7 +1,20 @@
-"""Vuelos directos Bilbao → Tenerife, leídos de Google Flights.
+"""Vuelos directos Bilbao → Tenerife.
 
-Historia de este módulo
------------------------
+Este fichero orquesta; quien consulta es cada fuente:
+
+    vuelos_serp.py   Vueling y Air Europa, via SerpApi -> Tenerife Norte
+    volotea.py       Volotea, de su propia web        -> Tenerife Sur
+
+Lo que queda aqui debajo es el lector de Google Flights con Playwright, que
+desde el 27-ago-2026 solo se usa como respaldo cuando NO hay `SERPAPI_KEY`
+(ejecutando el rastreo en un portatil, por ejemplo). Desde GitHub Actions no
+sirve: Google bloquea las IPs de centro de datos y 52 pasadas seguidas
+terminaron en "no se pudo leer Google Flights", con `ofertas_vuelos` vacio
+desde el primer dia. Se conserva el codigo, y su historia, porque el parseo de
+las tarjetas costo tres intentos y no merece la pena volver a descubrirlo.
+
+Historia del lector de Google Flights
+-------------------------------------
 La primera versión deducía la apertura de venta mirando si el buscador de
 vuelo+hotel del propio Landmar mencionaba "vuelo" y "eur". Como esa página las
 menciona siempre, daba "vuelos abiertos" en todas las pasadas: un falso
@@ -58,6 +71,7 @@ from playwright.sync_api import sync_playwright
 
 from . import config as cfg
 from . import volotea
+from . import vuelos_serp
 
 log = logging.getLogger(__name__)
 
@@ -385,24 +399,46 @@ def _solo_directos(ofertas: list[dict], codigo: str) -> list[dict]:
     return directos
 
 
-def buscar(ventanas: list[tuple[date, date, int]] | None = None
-           ) -> tuple[bool, str, list[dict]]:
-    """Cotiza vuelos directos para varias ventanas de fechas.
+def _volotea(ventanas) -> tuple[list[dict], str | None]:
+    """Volotea con su propio navegador. Google no la indexa en esta ruta."""
+    try:
+        with sync_playwright() as p:
+            navegador = p.chromium.launch(
+                args=["--disable-blink-features=AutomationControlled"]
+            )
+            contexto = navegador.new_context(
+                locale="es-ES",
+                timezone_id="Europe/Madrid",
+                viewport={"width": 1440, "height": 1000},
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+                ),
+            )
+            pagina = contexto.new_page()
+            try:
+                ofertas, detalle = volotea.buscar(pagina)
+            finally:
+                contexto.close()
+                navegador.close()
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Volotea: fallo abriendo el navegador (%s)", exc)
+        return [], f"Volotea no se pudo leer ({exc})"
 
-    Devuelve (abiertos, detalle, ofertas). Cada oferta lleva su `ida` y su
-    `vuelta` para poder casarla después con la tarifa de hotel de esas mismas
-    fechas y sacar el total del viaje.
+    if ofertas:
+        log.info("Volotea: %d combinaciones. %s", len(ofertas), detalle)
+    else:
+        log.info("Volotea: %s", detalle)
+    return ofertas, detalle
 
-    Antes solo se miraba una ventana, la más parecida a 7 noches. Pero las
-    estancias que salen más baratas por noche son las de 8 y 9, así que sin
-    vuelos para esas fechas no había manera de calcular el viaje completo.
+
+def _scraping_google(ventanas) -> tuple[list[dict], list[str]]:
+    """Google Flights con Playwright. Solo sirve fuera de GitHub Actions.
+
+    Google bloquea las IPs de centro de datos, asi que desde los runners esto
+    devuelve cero siempre. Se conserva para poder ejecutar el rastreo en un
+    portatil sin gastar clave de SerpApi.
     """
-    if ventanas is None:
-        ventanas = cfg.ventanas_validas()
-    ventanas = ventanas[:cfg.MAX_VENTANAS_VUELOS]
-    if not ventanas:
-        return False, "Sin ventana de fechas que consultar", []
-
     todas: list[dict] = []
     estados: list[str] = []
     try:
@@ -420,7 +456,6 @@ def buscar(ventanas: list[tuple[date, date, int]] | None = None
                 ),
             )
             pagina = contexto.new_page()
-
             for ida, vuelta, _noches in ventanas:
                 for codigo, nombre in DESTINOS:
                     ofertas, estado = _consultar(pagina, codigo, nombre, ida, vuelta)
@@ -428,40 +463,77 @@ def buscar(ventanas: list[tuple[date, date, int]] | None = None
                     for o in _solo_directos(ofertas, codigo):
                         o["ida"] = ida.isoformat()
                         o["vuelta"] = vuelta.isoformat()
+                        o.setdefault("fuente", "Google Flights (scraping)")
+                        o["precio_total"] = round(o["precio"] * cfg.PASAJEROS, 2)
                         todas.append(o)
-
-            # Volotea no se indexa en Google Flights en esta ruta. Sin esta
-            # consulta el rastreo daba "vuelos cerrados" mientras Volotea
-            # llevaba semanas vendiendo agosto de 2027.
-            try:
-                ofertas_v, detalle_v = volotea.buscar(pagina)
-                if ofertas_v:
-                    todas.extend(ofertas_v)
-                    estados.append("ok")
-                    log.info("Volotea: %d combinaciones. %s", len(ofertas_v), detalle_v)
-                else:
-                    log.info("Volotea: %s", detalle_v)
-            except Exception as exc:  # noqa: BLE001
-                log.warning("Volotea: fallo leyendo su web (%s)", exc)
-
             contexto.close()
             navegador.close()
     except Exception as exc:  # noqa: BLE001
         log.error("Vuelos: fallo abriendo el navegador (%s)", exc)
-        return False, f"No se pudo comprobar Google Flights ({exc})", []
+        estados.append("error")
+    return todas, estados
+
+
+def buscar(ventanas: list[tuple[date, date, int]] | None = None
+           ) -> tuple[bool, str, list[dict]]:
+    """Cotiza vuelos directos para varias ventanas de fechas.
+
+    Devuelve (abiertos, detalle, ofertas). Cada oferta lleva su `ida` y su
+    `vuelta` para poder casarla despues con la tarifa de hotel de esas mismas
+    fechas y sacar el total del viaje.
+
+    De donde sale cada aerolinea
+    ----------------------------
+        Vueling, Air Europa  -> SerpApi (motor google_flights), a TFN
+        Volotea              -> su propia web, a TFS
+
+    Hasta el 27-ago-2026 las dos primeras se leian raspando Google Flights con
+    Playwright, y desde GitHub Actions eso NUNCA funciono: Google bloquea las
+    IPs de centro de datos. 52 pasadas seguidas terminaron en "no se pudo leer
+    Google Flights". SerpApi hace la consulta desde sus propias IPs y ademas
+    permite cotizar la familia real (2 adultos + 1 nino) en vez de estimar
+    multiplicando por tres.
+
+    El scraping se conserva como respaldo para cuando no hay clave de SerpApi
+    (por ejemplo ejecutando el rastreo en un portatil).
+    """
+    if ventanas is None:
+        ventanas = cfg.ventanas_validas()
+    ventanas = ventanas[:cfg.MAX_VENTANAS_VUELOS]
+    if not ventanas:
+        return False, "Sin ventana de fechas que consultar", []
+
+    todas: list[dict] = []
+    estados: list[str] = []
+
+    if vuelos_serp.configurado():
+        ofertas_s, estados_s = vuelos_serp.buscar(ventanas)
+        todas.extend(ofertas_s)
+        estados.extend(estados_s)
+    else:
+        log.info("Sin SERPAPI_KEY: se intenta leer Google Flights raspando")
+        ofertas_g, estados_g = _scraping_google(ventanas)
+        todas.extend(ofertas_g)
+        estados.extend(estados_g)
+
+    ofertas_v, _detalle_v = _volotea(ventanas)
+    if ofertas_v:
+        todas.extend(ofertas_v)
+        estados.append("ok")
 
     if todas:
-        todas.sort(key=lambda o: o["precio"])
+        todas.sort(key=lambda o: o.get("precio_total") or o["precio"])
         mejor = todas[0]
+        total = mejor.get("precio_total") or mejor["precio"] * cfg.PASAJEROS
         detalle = (
-            f"Desde {mejor['precio']:.0f} € por adulto con {mejor['aerolinea']}, "
-            f"directo, ida y vuelta {mejor['ida']} → {mejor['vuelta']} "
-            f"({cfg.ORIGEN}→{mejor['destino']})"
+            f"Desde {total:.0f} EUR los {cfg.PASAJEROS} con {mejor['aerolinea']}, "
+            f"directo, ida y vuelta {mejor['ida']} -> {mejor['vuelta']} "
+            f"({cfg.ORIGEN}->{mejor['destino']})"
         )
         return True, detalle, todas[:30]
 
     # Distinguir "no hay vuelos" de "los hay pero ninguno directo" evita que el
-    # panel diga que la venta está cerrada cuando en realidad está abierta.
+    # panel diga que la venta esta cerrada cuando en realidad esta abierta.
     if "ok" in estados and cfg.SOLO_VUELOS_DIRECTOS:
         return False, (
             "Hay vuelos a la venta, pero ninguno directo desde Bilbao "
@@ -470,16 +542,16 @@ def buscar(ventanas: list[tuple[date, date, int]] | None = None
 
     if "sin_vuelos" in estados:
         return False, (
-            "Google Flights todavía no tiene vuelos para esas fechas. "
-            "Las aerolíneas suelen abrir la venta 10-12 meses antes"
+            "Todavia no hay vuelos a la venta para esas fechas. "
+            "Las aerolineas suelen abrir la venta 10-12 meses antes"
         ), []
 
     return False, (
-        "No se pudo leer Google Flights en esta pasada; se reintenta "
+        "No se pudo comprobar la venta de vuelos en esta pasada; se reintenta "
         "en la siguiente"
     ), []
 
 
 def venta_abierta(page=None, entrada=None, salida=None) -> tuple[bool, str, list[dict]]:
-    """Compatibilidad con la versión anterior: cotiza las ventanas por defecto."""
+    """Compatibilidad con la version anterior: cotiza las ventanas por defecto."""
     return buscar()

@@ -11,6 +11,10 @@ on:
         description: "Enviar aviso a Telegram aunque no haya novedades"
         type: boolean
         default: true
+      solo_vuelos:
+        description: "Solo cotizar vuelos (rapido, sin avisos, sin tocar el historico)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write           # para guardar el histórico
@@ -53,6 +57,9 @@ jobs:
           # En ejecucion manual manda el interruptor; las programadas van
           # silenciosas salvo que haya novedad de verdad.
           FORZAR_AVISO: ${{ inputs.avisar && '1' || '' }}
+          # Prueba rapida de la parte de vuelos: reutiliza las tarifas de hotel
+          # de la ultima pasada, salta el limite diario de SerpApi y no avisa.
+          SOLO_VUELOS: ${{ inputs.solo_vuelos && '1' || '' }}
         run: python -m scraper.main
 
       - name: Avisar si el rastreo fallo

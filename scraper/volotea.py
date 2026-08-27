@@ -180,6 +180,7 @@ def _combinar(idas: list[Tramo], vueltas: list[Tramo]) -> list[dict]:
             ofertas.append({
                 "aerolinea": AEROLINEA,
                 "destino": DESTINO,
+                "destino_nombre": DESTINO_NOMBRE,
                 "ida": ida.fecha,
                 "vuelta": vuelta.fecha,
                 "noches": noches,

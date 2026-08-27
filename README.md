@@ -66,13 +66,29 @@ Al terminar tendrás el panel en `https://TU_USUARIO.github.io/tenerife-2027-tra
 
 ```
 scraper/
-├── config.py    Fechas, ocupación, filtros. Todo lo ajustable está aquí.
-├── landmar.py   Lee el motor de reservas del hotel con Playwright.
-├── vuelos.py    Detecta si ya se pueden comprar los vuelos.
-├── notify.py    Avisos por Telegram.
-├── report.py    Genera el panel HTML de GitHub Pages.
-└── main.py      Orquesta todo y guarda el histórico.
+├── config.py       Fechas, ocupación, filtros. Todo lo ajustable está aquí.
+├── landmar.py      Lee el motor de reservas del hotel con Playwright.
+├── vuelos.py       Orquesta la cotización de vuelos.
+├── vuelos_serp.py  Vueling y Air Europa vía SerpApi (motor google_flights).
+├── volotea.py      Volotea, leída de su propia web (Google no la indexa).
+├── otas.py         Booking, Expedia... vía Google Hotels (SerpApi).
+├── combinar.py     Suma hotel + vuelos por fechas para dar el viaje entero.
+├── notify.py       Avisos por Telegram.
+├── report.py       Genera el panel HTML de GitHub Pages.
+└── main.py         Orquesta todo y guarda el histórico.
 ```
+
+### Vuelos: quién vuela a dónde
+
+Comprobado el 27-ago-2026. Es el dato que más condiciona las fechas:
+
+| Ruta | Aerolíneas | Frecuencia | Del aeropuerto al hotel |
+|---|---|---|---|
+| BIO → **TFS** (Tenerife Sur) | Volotea | 2 por semana (mié y dom) | ~45 min |
+| BIO → **TFN** (Tenerife Norte) | Vueling, Air Europa | 16 por semana, a diario | ~1 h 15 |
+
+Si se acepta aterrizar en el Norte, la entrada al hotel deja de estar atada a
+los miércoles y domingos de Volotea, a cambio de media hora más de coche.
 
 En cada pasada consulta las **35 combinaciones de fechas** que incluyen la noche del
 8 de agosto (estancias de 5 a 9 noches), se queda solo con Todo Incluido cancelable
@@ -107,6 +123,17 @@ SOLO_TODO_INCLUIDO = False
 cuántas combinaciones se consultan (van ordenadas de más a menos parecidas a las
 7 noches ideales).
 
+**Probar solo los vuelos** — en **Actions → Run workflow** marca *solo_vuelos*.
+Se salta el rastreo del hotel (que son ~10 minutos), reutiliza sus últimas
+tarifas, cotiza los vuelos saltándose el límite diario de SerpApi y no manda
+ningún aviso ni toca el histórico. Es la forma rápida de comprobar un cambio en
+`vuelos_serp.py` o en `volotea.py`.
+
+**Cuidado con la cuota de SerpApi** — el plan gratuito son 250 búsquedas al mes.
+El reparto actual: ~60 de OTAs (1 al día) + ~90 de vuelos (`MAX_VENTANAS_VUELOS`
+= 3, una vez al día) ≈ 150. Subir `MAX_VENTANAS_VUELOS` o quitar el límite
+diario se come el margen deprisa.
+
 ---
 
 ## Limitaciones honestas
@@ -118,8 +145,17 @@ cuántas combinaciones se consultan (van ordenadas de más a menos parecidas a l
 - **Solo rastrea la web oficial del hotel.** Booking, eDreams, Logitravel y compañía
   tienen anti-bots serios y meterlos aquí daría más falsos positivos que otra cosa.
   Para esos, la comparativa manual sigue mereciendo la pena de vez en cuando.
-- La detección de vuelos es **indirecta**: se apoya en que el paquete vuelo+hotel del
-  propio hotel deje de rechazar el origen Bilbao. Es fiable como señal de "ya se
-  puede", pero cuando salte, confirma en la web de la aerolínea.
+- Los vuelos de Vueling y Air Europa vienen de **Google Flights a través de
+  SerpApi**. Hasta el 27-ago-2026 se raspaba Google Flights directamente con
+  Playwright y desde GitHub Actions no funcionó **ni una sola vez** en 52
+  pasadas: Google bloquea las IPs de centro de datos. Si algún día vuelve a
+  aparecer "no se pudo comprobar la venta de vuelos", lo primero que hay que
+  mirar es si queda cuota en la clave de SerpApi.
+- **Volotea se lee raspando su web** y eso es frágil por definición. Si su
+  calendario cambia de maquetación, el módulo devuelve lista vacía y lo dice en
+  el log, pero no inventa precios.
+- El precio de vuelo **no incluye equipaje facturado**. Con Volotea la tarifa
+  base es solo bolso de mano; con Vueling y Air Europa depende de la tarifa.
+  Tampoco entra el coche de alquiler, que sale algo más caro desde el Norte.
 - Los precios que veas son orientativos. **Confírmalos siempre en la web del hotel
   antes de reservar.**

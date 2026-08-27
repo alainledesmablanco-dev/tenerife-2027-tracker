@@ -25,7 +25,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 from . import config as cfg
-from . import combinar, landmar, notify, otas, report, vuelos
+from . import combinar, landmar, notify, otas, report, vuelos, vuelos_serp
 
 RAIZ = Path(__file__).resolve().parent.parent
 HISTORICO = RAIZ / "data" / "historico.json"
@@ -110,6 +110,34 @@ def _toca_otas(datos: dict, sello: datetime) -> bool:
     return ultimo != sello.strftime("%Y-%m-%d")
 
 
+def _solo_vuelos() -> bool:
+    """Modo depuracion: cotiza vuelos y nada mas.
+
+    Rastrear el hotel son ~10 minutos y 35 consultas. Cuando lo que se esta
+    tocando es la parte de vuelos, esperar ese cuarto de hora por cada prueba
+    hace que no se pruebe. Con SOLO_VUELOS=1 se reutilizan las tarifas de hotel
+    de la ultima pasada, se cotizan los vuelos saltandose el limite diario y no
+    se envia ningun aviso a Telegram: es una prueba, no una novedad.
+    """
+    return os.environ.get("SOLO_VUELOS", "").strip().lower() in ("1", "true", "si")
+
+
+def _toca_vuelos(datos: dict, sello: datetime) -> bool:
+    """Una sola cotización de vuelos por día natural cuando se usa SerpApi.
+
+    Cada ventana de fechas gasta una búsqueda de las 250 mensuales del plan
+    gratuito. Con MAX_VENTANAS_VUELOS=3 y dos pasadas al día serían 180 al mes,
+    que sumadas a las ~60 de las OTAs no caben. Una vez al día son ~90 y sí.
+
+    Sin clave de SerpApi el rastreo raspa la web, que no gasta cuota, así que
+    entonces se cotiza en todas las pasadas.
+    """
+    if _solo_vuelos() or not vuelos_serp.configurado():
+        return True
+    ultimo = (datos.get("vuelos_actualizado") or "")[:10]
+    return ultimo != sello.strftime("%Y-%m-%d")
+
+
 def _mejores_por_grupo(tarifas: list[dict], tope: int = 15) -> list[dict]:
     """Una fila por combinación de duración y habitación.
 
@@ -146,34 +174,57 @@ def _ventanas_de(tarifas: list[dict], tope: int) -> list[tuple[date, date, int]]
 
 def main() -> int:
     datos = cargar_historico()
+    prueba = _solo_vuelos()
 
-    tarifas = rastrear_hotel()
-    validas = [
-        t for t in tarifas
-        if t["cancelable"] and cfg.REGIMEN_TI.lower() in t["regimen"].lower()
-    ]
+    if prueba:
+        log.info("SOLO_VUELOS: se reutilizan las tarifas de hotel de la ultima pasada")
+        validas = datos.get("tarifas_actuales") or []
+        mejores = validas
+    else:
+        tarifas = rastrear_hotel()
+        validas = [
+            t for t in tarifas
+            if t["cancelable"] and cfg.REGIMEN_TI.lower() in t["regimen"].lower()
+        ]
+        mejores = _mejores_por_grupo(validas)
     # El mejor es el de menor precio POR NOCHE, no el de menor total.
     mejor = min(validas, key=lambda t: t["por_noche"]) if validas else None
-    mejores = _mejores_por_grupo(validas)
+
+    sello = ahora_madrid()
+    vuelos_antes = datos.get("vuelos_abiertos", False)
 
     # Los vuelos se cotizan para las fechas de las mejores estancias, no para
     # una ventana fija: así el total del viaje corresponde a algo reservable.
-    log.info("Cotizando vuelos para las mejores fechas del hotel")
-    abiertos, detalle, ofertas_vuelos = vuelos.buscar(
-        _ventanas_de(mejores, cfg.MAX_VENTANAS_VUELOS)
-    )
-    log.info("Vuelos: %s (%s)", abiertos, detalle)
+    if _toca_vuelos(datos, sello):
+        log.info("Cotizando vuelos para las mejores fechas del hotel")
+        abiertos, detalle, ofertas_vuelos = vuelos.buscar(
+            _ventanas_de(mejores, cfg.MAX_VENTANAS_VUELOS)
+        )
+        log.info("Vuelos: %s (%s)", abiertos, detalle)
+        # Una pasada que falla no debe borrar la cotización buena de ayer: se
+        # conserva lo anterior y el panel avisa de cuándo se leyó.
+        if ofertas_vuelos:
+            datos["ofertas_vuelos"] = ofertas_vuelos
+            datos["vuelos_actualizado"] = sello.strftime("%Y-%m-%d %H:%M")
+            datos["vuelos_abiertos"] = True
+        elif abiertos:
+            datos["vuelos_abiertos"] = True
+        datos["vuelos_comprobado"] = sello.strftime("%Y-%m-%d %H:%M")
+    else:
+        log.info("Los vuelos ya se cotizaron hoy; se omite")
+        ofertas_vuelos = datos.get("ofertas_vuelos") or []
+        abiertos = datos.get("vuelos_abiertos", False)
+        detalle = (datos.get("registros") or [{}])[-1].get("detalle_vuelos") or ""
 
     combinaciones = combinar.calcular(mejores, ofertas_vuelos)
 
     historico = datos.get("mejor_precio_historico") or {}
     anterior = historico.get("por_noche") or REFERENCIA_NOCHE
-    vuelos_antes = datos.get("vuelos_abiertos", False)
-
-    sello = ahora_madrid()
 
     # Comparativa con otras webs (Booking, Expedia...) vía Google Hotels.
-    if not otas.configurado():
+    if prueba:
+        log.info("SOLO_VUELOS: no se consultan las OTAs (gastan clave)")
+    elif not otas.configurado():
         log.info("Sin SERPAPI_KEY: no se comparan otras webs")
     elif _toca_otas(datos, sello):
         log.info("Consultando precios en otras webs")
@@ -189,19 +240,21 @@ def main() -> int:
     else:
         log.info("Las OTAs ya se consultaron hoy; se omite")
 
-    datos["registros"].append({
-        "fecha": sello.strftime("%Y-%m-%d %H:%M"),
-        "mejor_por_noche": mejor["por_noche"] if mejor else None,
-        "mejor_total": mejor["total"] if mejor else None,
-        "mejor_detalle": mejor,
-        "mejor_viaje": combinaciones[0]["total"] if combinaciones else None,
-        "tarifas_encontradas": len(validas),
-        "vuelos_abiertos": abiertos,
-        "detalle_vuelos": detalle,
-    })
-    datos["vuelos_abiertos"] = abiertos
-    datos["ofertas_vuelos"] = ofertas_vuelos
-    datos["vuelos_actualizado"] = sello.strftime("%Y-%m-%d %H:%M")
+    if prueba:
+        # Un registro de una prueba de vuelos ensuciaria la grafica de precios
+        # del hotel con un punto que no corresponde a una lectura real.
+        log.info("SOLO_VUELOS: no se anade registro al historico")
+    else:
+        datos["registros"].append({
+            "fecha": sello.strftime("%Y-%m-%d %H:%M"),
+            "mejor_por_noche": mejor["por_noche"] if mejor else None,
+            "mejor_total": mejor["total"] if mejor else None,
+            "mejor_detalle": mejor,
+            "mejor_viaje": combinaciones[0]["total"] if combinaciones else None,
+            "tarifas_encontradas": len(validas),
+            "vuelos_abiertos": abiertos,
+            "detalle_vuelos": detalle,
+        })
     datos["combinaciones"] = combinaciones
     datos["pasajeros"] = cfg.PASAJEROS
     datos["referencia_noche"] = round(REFERENCIA_NOCHE, 2)
@@ -210,6 +263,12 @@ def main() -> int:
 
     # --- avisos ------------------------------------------------------
     url_hotel = cfg.HOTEL_URL
+
+    if prueba:
+        log.info("SOLO_VUELOS: no se envia ningun aviso")
+        guardar_historico(datos)
+        report.generar(datos, RAIZ / "docs" / "index.html")
+        return 0
 
     if abiertos and not vuelos_antes:
         notify.enviar(notify.formatear_vuelos(detalle, url_hotel))

@@ -64,15 +64,21 @@ MAX_VENTANAS_VUELOS = 3
 # por Alain el 15-ago-2026). Ryanair, Binter e Iberia se han quitado: no
 # operan la ruta, y tenerlas en la lista solo servia para buscar en balde.
 #
-# Cobertura de cada una:
-#   Volotea    -> modulo propio (volotea.py). Vuela a Tenerife SUR, a 45 min
-#                 del hotel, y solo miercoles y domingos.
-#   Vueling    -> via Google Flights, que si la indexa.
-#   Air Europa -> via Google Flights, que si la indexa.
+# Cobertura de cada una (revisado el 27-ago-2026 con flightconnections):
+#   Volotea    -> modulo propio (volotea.py). Vuela a Tenerife SUR (TFS), a
+#                 45 min del hotel, y solo miercoles y domingos.
+#   Vueling    -> Tenerife NORTE (TFN). Via SerpApi.
+#   Air Europa -> Tenerife NORTE (TFN). Via SerpApi.
 #
-# OJO: Google Flights falla desde los runners de GitHub Actions porque Google
-# bloquea las IPs de centro de datos. Mientras eso siga asi, Vueling y Air
-# Europa pueden quedarse sin cotizar aunque tengan billetes a la venta.
+# El dato que cambia el plan del viaje: BIO-TFS son 2 vuelos por semana y
+# BIO-TFN son 16, a diario. Es decir, si se acepta aterrizar en el Norte
+# (~1 h 15 del hotel en vez de 45 min) la fecha de entrada deja de estar atada
+# a los miercoles y domingos de Volotea.
+#
+# Hasta el 27-ago-2026 Vueling y Air Europa se leian raspando Google Flights
+# con Playwright, y desde GitHub Actions eso NUNCA funciono: Google bloquea las
+# IPs de centro de datos y las 52 pasadas terminaron en "no se pudo leer".
+# Ahora se piden por SerpApi (vuelos_serp.py), que consulta desde sus IPs.
 AEROLINEAS = [
     ("Volotea", "https://www.volotea.com/es/"),
     ("Vueling", "https://www.vueling.com/es"),
