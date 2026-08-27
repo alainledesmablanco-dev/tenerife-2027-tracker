@@ -101,18 +101,29 @@ jobs:
           echo "No se pudo guardar el histórico tras 3 intentos"
           exit 1
 
-      - name: Subir capturas si algo falló
-        if: failure()
+      # if: always(), no if: failure(). En el run #58 los dos lectores de
+      # aerolineas fallaron pero el job termino en verde —el rastreo esta
+      # hecho para no morir cuando una web no responde— asi que no se subio
+      # nada y hubo que adivinar. Los volcados solo existen si algo ha ido
+      # mal, de modo que subirlos siempre no ensucia nada.
+      - name: Subir capturas de depuración
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: depuracion
           path: |
-            *.png
-            *.html
+            depuracion-*.png
+            depuracion-*.html
           if-no-files-found: ignore
+          retention-days: 7
 
   publicar:
     needs: rastrear
+    # GitHub Pages solo acepta despliegues desde main por las reglas de
+    # proteccion del entorno. Sin esta condicion, cualquier prueba en una rama
+    # termina en rojo por un job que no podia funcionar, y un rojo que siempre
+    # esta ahi deja de significar nada.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

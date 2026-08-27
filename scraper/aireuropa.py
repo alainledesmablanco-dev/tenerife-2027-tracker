@@ -60,6 +60,7 @@ if TYPE_CHECKING:   # Playwright solo hace falta para navegar. Dejarlo fuera
     from playwright.sync_api import Page
 
 from . import config as cfg
+from . import depuracion
 
 log = logging.getLogger(__name__)
 
@@ -209,17 +210,45 @@ def combinar(idas: dict[str, float], vueltas: dict[str, float],
 
 # --------------------------------------------------------------- navegación
 
-def _rechazar_cookies(page: Page) -> None:
-    for etiqueta in ("Rechazar todas", "Rechazar", "Solo las necesarias",
-                     "Aceptar solo las esenciales", "Reject all"):
+# El banner de consentimiento es lo que separa un navegador de escritorio con
+# cookies de una visita anterior —donde se sacaron estos selectores— de un
+# runner en frio, donde tapa el buscador entero. Se prueban primero los ids
+# conocidos de OneTrust y despues los textos, y tambien dentro de los iframes,
+# que es donde algunas implantaciones lo meten.
+SELECTORES_COOKIES = (
+    "#onetrust-reject-all-handler",
+    "#onetrust-accept-btn-handler",
+    "button[id*='reject' i]",
+    "button[class*='reject' i]",
+)
+TEXTOS_COOKIES = ("Rechazar todas", "Rechazar", "Solo las necesarias",
+                  "Aceptar solo las esenciales", "Reject all", "Aceptar todas")
+
+
+def _rechazar_cookies(page: Page) -> bool:
+    """True si se cerro algun banner. Nunca lanza."""
+    for contexto in (page, *page.frames):
+        for sel in SELECTORES_COOKIES:
+            try:
+                nodo = contexto.locator(sel)
+                if nodo.count() and nodo.first.is_visible(timeout=1500):
+                    nodo.first.click(timeout=4000)
+                    page.wait_for_timeout(1500)
+                    log.info("Air Europa: banner de cookies cerrado con %s", sel)
+                    return True
+            except Exception:  # noqa: BLE001
+                continue
+    for etiqueta in TEXTOS_COOKIES:
         try:
             boton = page.get_by_role("button", name=etiqueta)
             if boton.count():
                 boton.first.click(timeout=4000)
-                page.wait_for_timeout(1000)
-                return
+                page.wait_for_timeout(1500)
+                log.info("Air Europa: banner de cookies cerrado con %r", etiqueta)
+                return True
         except Exception:  # noqa: BLE001
             continue
+    return False
 
 
 def _cerrar_avisos(page: Page) -> None:
@@ -235,6 +264,10 @@ def _cerrar_avisos(page: Page) -> None:
 
 
 def _escribir_aeropuerto(page: Page, selector: str, texto: str, opcion: str) -> None:
+    # Esperar a que exista, no clicar y confiar: el buscador es Angular y en el
+    # runner tarda bastante mas en montarse que en un portatil. El run #58
+    # murio justo aqui con "Timeout 8000ms waiting for #flight-searcher-departure".
+    page.wait_for_selector(selector, timeout=40_000, state="visible")
     campo = page.locator(selector).first
     campo.click(timeout=8000)
     campo.fill("", timeout=4000)
@@ -249,7 +282,8 @@ def _rellenar(page: Page, ida: date, vuelta: date) -> bool:
     try:
         page.goto(INICIO, wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
         page.wait_for_timeout(6000)
-        _rechazar_cookies(page)
+        if not _rechazar_cookies(page):
+            log.info("Air Europa: no aparecio banner de cookies (o no se reconocio)")
         _cerrar_avisos(page)
 
         _escribir_aeropuerto(page, "#flight-searcher-departure", cfg.ORIGEN_NOMBRE, cfg.ORIGEN)
@@ -272,6 +306,7 @@ def _rellenar(page: Page, ida: date, vuelta: date) -> bool:
         return True
     except Exception as exc:  # noqa: BLE001
         log.warning("Air Europa: no se pudo lanzar la búsqueda (%s)", exc)
+        depuracion.volcar(page, "aireuropa-buscador")
         return False
 
 
@@ -284,6 +319,7 @@ def _seguir_a_la_vuelta(page: Page) -> bool:
         return True
     except Exception as exc:  # noqa: BLE001
         log.info("Air Europa: no se pudo pasar al tramo de vuelta (%s)", exc)
+        depuracion.volcar(page, "aireuropa-vuelta")
         return False
 
 
@@ -300,6 +336,7 @@ def buscar(page: Page, ida: date, vuelta: date) -> tuple[list[dict], str]:
     cal_ida = parsear_calendario(texto_ida)
     directo_ida = parsear_directo(texto_ida)
     if not cal_ida:
+        depuracion.volcar(page, "aireuropa-ida")
         return [], "Air Europa no devolvió calendario de precios para la ida"
     if not directo_ida:
         return [], (f"Air Europa vende esas fechas (desde {min(cal_ida.values()):.0f} € "

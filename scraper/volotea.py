@@ -68,6 +68,7 @@ if TYPE_CHECKING:   # Playwright solo hace falta para navegar. Dejarlo fuera
     from playwright.sync_api import Page
 
 from . import config as cfg
+from . import depuracion
 
 log = logging.getLogger(__name__)
 
@@ -119,38 +120,61 @@ def _rechazar_cookies(page: Page) -> None:
             continue
 
 
-def _abrir_buscador(page: Page) -> bool:
-    """Deja el buscador con origen Bilbao y destino Tenerife Sur."""
+def _destino_ya_puesto(page: Page) -> bool:
+    """True si el buscador ya muestra Tenerife como destino."""
     try:
-        page.goto(INICIO, wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
-        page.wait_for_timeout(4000)
-        _rechazar_cookies(page)
-        page.wait_for_timeout(1500)
-
-        # El destino abre un panel con tarjetas por aeropuerto. Si el buscador
-        # ya viene con el destino puesto (cookies de una visita anterior) el
-        # panel no aparece y no pasa nada: se sigue adelante.
-        try:
-            page.get_by_text("Seleccionar aeropuerto").first.click(timeout=8000)
-            page.wait_for_timeout(2500)
-            page.get_by_text(DESTINO_NOMBRE, exact=True).first.click(timeout=8000)
-            page.wait_for_timeout(4000)
-        except Exception:  # noqa: BLE001
-            log.info("Volotea: el destino ya estaba puesto o el panel no salió")
-        return True
-    except Exception as exc:  # noqa: BLE001
-        log.warning("Volotea: no se pudo preparar el buscador (%s)", exc)
+        return "tenerife" in page.inner_text("body", timeout=5000).lower()
+    except Exception:  # noqa: BLE001
         return False
 
 
+def _abrir_buscador(page: Page) -> tuple[bool, str]:
+    """Deja el buscador con origen Bilbao y destino Tenerife Sur.
+
+    Devuelve (ok, motivo). El motivo viaja hasta el panel: en el run #58 este
+    paso fallaba en silencio —habia un `except` que decia "el destino ya
+    estaba puesto o el panel no salio" sin comprobar cual de las dos cosas
+    era— y el sintoma aparecia despues, al no encontrar calendario. Un except
+    que se inventa la explicacion es peor que no capturarlo.
+    """
+    try:
+        page.goto(INICIO, wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
+    except Exception as exc:  # noqa: BLE001
+        return False, f"No cargo la web de Volotea ({exc})"
+
+    page.wait_for_timeout(4000)
+    _rechazar_cookies(page)
+    page.wait_for_timeout(2000)
+
+    # El destino abre un panel con tarjetas por aeropuerto.
+    try:
+        page.get_by_text("Seleccionar aeropuerto").first.click(timeout=10_000)
+        page.wait_for_timeout(2500)
+        page.get_by_text(DESTINO_NOMBRE, exact=True).first.click(timeout=10_000)
+        page.wait_for_timeout(4000)
+        return True, "destino seleccionado"
+    except Exception as exc:  # noqa: BLE001
+        if _destino_ya_puesto(page):
+            log.info("Volotea: el destino ya venia puesto en el buscador")
+            return True, "destino ya puesto"
+        return False, f"No se pudo poner Tenerife Sur como destino ({exc})"
+
+
 def _abrir_calendario(page: Page) -> bool:
-    """Despliega el calendario de fechas."""
-    for etiqueta in ("Ida", "Fecha de ida", "Salida"):
+    """Despliega el calendario de fechas y espera a que pinte los dias."""
+    if page.locator(SEL_DIA).count():
+        return True
+    for etiqueta in ("Ida", "Fecha de ida", "Salida", "Fecha"):
         try:
             page.get_by_text(etiqueta, exact=True).first.click(timeout=6000)
-            page.wait_for_timeout(2500)
-            if page.locator(SEL_DIA).count():
-                return True
+        except Exception:  # noqa: BLE001
+            continue
+        try:
+            # Esperar al selector, no dormir un rato y cruzar los dedos: el
+            # calendario tarda lo que tarde segun lo cargado que este el
+            # runner, y 2,5 s fijos se quedaban cortos.
+            page.wait_for_selector(SEL_DIA, timeout=15_000)
+            return True
         except Exception:  # noqa: BLE001
             continue
     return bool(page.locator(SEL_DIA).count())
@@ -227,11 +251,14 @@ def _combinar(idas: list[Tramo], vueltas: list[Tramo]) -> list[dict]:
 
 def buscar(page: Page) -> tuple[list[dict], str]:
     """Devuelve (ofertas, detalle). Lista vacía si no se pudo leer."""
-    if not _abrir_buscador(page):
-        return [], "No se pudo abrir el buscador de Volotea"
+    ok, motivo = _abrir_buscador(page)
+    if not ok:
+        depuracion.volcar(page, "volotea-buscador")
+        return [], motivo
 
     if not _abrir_calendario(page):
-        return [], "No se pudo abrir el calendario de Volotea"
+        depuracion.volcar(page, "volotea-calendario")
+        return [], f"No se pudo abrir el calendario de Volotea ({motivo})"
 
     tramos = leer_calendario(page)
     if not tramos:
