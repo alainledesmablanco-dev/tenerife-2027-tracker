@@ -59,7 +59,13 @@ import re
 from dataclasses import dataclass, asdict
 from datetime import date
 
-from playwright.sync_api import Page
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:   # Playwright solo hace falta para navegar. Dejarlo fuera
+    # del import de arriba permite probar los parseadores (que son texto puro)
+    # sin instalar navegadores: son la parte que de verdad se rompe cuando la
+    # web cambia, y tienen que poder ejecutarse en cualquier sitio.
+    from playwright.sync_api import Page
 
 from . import config as cfg
 
