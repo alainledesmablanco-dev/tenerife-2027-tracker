@@ -86,7 +86,7 @@ Comprobado a mano en las webs de las aerolíneas el **27-ago-2026**:
 | Aerolínea | Aeropuerto | Días de directo | ¿Agosto 2027 a la venta? | Al hotel |
 |---|---|---|---|---|
 | **Volotea** | Tenerife Sur | mié y dom | **Sí** | ~45 min |
-| **Air Europa** | Tenerife Norte | mar, jue y sáb | **Sí** | ~1 h 15 |
+| **Air Europa** | Tenerife Norte | mar, jue y sáb | **Sí**, pero ver aviso ↓ | ~1 h 15 |
 | Vueling | Tenerife Norte | a diario | **No** (su calendario acaba el 13-jun-2027) | ~1 h 15 |
 
 Precios medidos ese día para 2 adultos + 1 niño, ida y vuelta, directo:
@@ -99,6 +99,28 @@ O sea que Air Europa sale más barata **y** con más equipaje, a cambio de media
 hora más de coche desde el aeropuerto. Y como su directo va martes, jueves y
 sábado, la entrada al hotel encaja el **sábado 7** o el **jueves 5**, no el
 domingo 8.
+
+### Air Europa bloquea al runner
+
+Su web sí vende agosto de 2027, pero **desde GitHub Actions no se puede leer**.
+Comprobado en el run #59: lo que llega no es su buscador sino la página de
+bloqueo de su CDN.
+
+```
+titulo: 'Server errors'
+texto:  AirEuropa | Page Unavailable | Estamos actualizando la web...
+        Reference ID: 18.6ec83017... | Client IP: 172.174.221.224
+```
+
+Ese patrón de "Reference ID + Client IP" es Akamai denegando en el borde, y esa
+IP es de Azure, o sea el runner. No es un fallo de selectores y no se arregla
+ampliando timeouts: la página nunca llega. `aireuropa.py` lo detecta y lo dice
+con esas palabras (`depuracion.bloqueada`), así que el panel distingue "nos
+bloquean" de "se rompió el lector".
+
+El módulo sigue sirviendo **ejecutando el rastreo en un portátil**, desde una
+IP doméstica. Y a partir de finales de septiembre Air Europa entra igualmente
+por SerpApi, que consulta a Google desde su propia infraestructura.
 
 ### Por qué Google Vuelos no vale (todavía)
 

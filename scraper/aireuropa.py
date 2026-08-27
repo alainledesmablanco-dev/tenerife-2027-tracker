@@ -277,11 +277,25 @@ def _escribir_aeropuerto(page: Page, selector: str, texto: str, opcion: str) -> 
     page.wait_for_timeout(1200)
 
 
-def _rellenar(page: Page, ida: date, vuelta: date) -> bool:
-    """Origen, destino, fechas y pasajeros. True si el formulario quedó listo."""
+def _rellenar(page: Page, ida: date, vuelta: date) -> tuple[bool, str]:
+    """Origen, destino, fechas y pasajeros. Devuelve (ok, motivo)."""
     try:
         page.goto(INICIO, wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
         page.wait_for_timeout(6000)
+
+        # Antes de tocar un solo selector: comprobar que esto es la web de Air
+        # Europa y no su pagina de bloqueo. En el run #59 no lo era, y los 40
+        # segundos de espera al buscador se los pasó esperando a un cartel de
+        # "Page Unavailable" que nunca iba a traer un formulario.
+        senal = depuracion.bloqueada(page)
+        if senal:
+            depuracion.volcar(page, "aireuropa-bloqueo")
+            return False, (
+                "Air Europa bloquea la IP del runner: su CDN devuelve una "
+                f"pagina de error (senal: {senal!r}). No es un fallo de "
+                "selectores y no se arregla desde GitHub Actions"
+            )
+
         if not _rechazar_cookies(page):
             log.info("Air Europa: no aparecio banner de cookies (o no se reconocio)")
         _cerrar_avisos(page)
@@ -303,11 +317,12 @@ def _rellenar(page: Page, ida: date, vuelta: date) -> bool:
         page.get_by_role("button", name=re.compile("Buscar vuelos", re.I)).first.click(timeout=8000)
         page.wait_for_url(re.compile(r"digital\.aireuropa\.com/booking/availability"), timeout=60_000)
         page.wait_for_timeout(6000)
-        return True
+        return True, "busqueda lanzada"
     except Exception as exc:  # noqa: BLE001
         log.warning("Air Europa: no se pudo lanzar la búsqueda (%s)", exc)
-        depuracion.volcar(page, "aireuropa-buscador")
-        return False
+        depuracion.volcar(page, "aireuropa-buscador",
+                          pistas=("origen", "destino", "fecha", "buscar"))
+        return False, f"No se pudo consultar Air Europa ({exc})"
 
 
 def _seguir_a_la_vuelta(page: Page) -> bool:
@@ -329,8 +344,9 @@ def buscar(page: Page, ida: date, vuelta: date) -> tuple[list[dict], str]:
     Con una sola búsqueda se leen los ~15 días de calendario de cada tramo, así
     que no hace falta repetirla por cada ventana de fechas del hotel.
     """
-    if not _rellenar(page, ida, vuelta):
-        return [], "No se pudo consultar Air Europa"
+    ok, motivo = _rellenar(page, ida, vuelta)
+    if not ok:
+        return [], motivo
 
     texto_ida = page.inner_text("body", timeout=20_000)
     cal_ida = parsear_calendario(texto_ida)

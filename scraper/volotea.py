@@ -143,6 +143,12 @@ def _abrir_buscador(page: Page) -> tuple[bool, str]:
         return False, f"No cargo la web de Volotea ({exc})"
 
     page.wait_for_timeout(4000)
+
+    senal = depuracion.bloqueada(page)
+    if senal:
+        depuracion.volcar(page, "volotea-bloqueo")
+        return False, f"Volotea bloquea la IP del runner (senal: {senal!r})"
+
     _rechazar_cookies(page)
     page.wait_for_timeout(2000)
 
@@ -251,13 +257,18 @@ def _combinar(idas: list[Tramo], vueltas: list[Tramo]) -> list[dict]:
 
 def buscar(page: Page) -> tuple[list[dict], str]:
     """Devuelve (ofertas, detalle). Lista vacía si no se pudo leer."""
+    # Las pistas son los rotulos del buscador: con ellos el log dice que
+    # elemento hay que clicar de verdad, sin bajarse el HTML del artefacto.
+    PISTAS = ("origen", "destino", "aeropuerto", "bilbao", "tenerife",
+              "ida", "vuelta", "pasajero", "buscar")
+
     ok, motivo = _abrir_buscador(page)
     if not ok:
-        depuracion.volcar(page, "volotea-buscador")
+        depuracion.volcar(page, "volotea-buscador", pistas=PISTAS)
         return [], motivo
 
     if not _abrir_calendario(page):
-        depuracion.volcar(page, "volotea-calendario")
+        depuracion.volcar(page, "volotea-calendario", pistas=PISTAS)
         return [], f"No se pudo abrir el calendario de Volotea ({motivo})"
 
     tramos = leer_calendario(page)
