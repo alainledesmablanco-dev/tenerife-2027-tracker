@@ -69,8 +69,9 @@ scraper/
 ├── config.py       Fechas, ocupación, filtros. Todo lo ajustable está aquí.
 ├── landmar.py      Lee el motor de reservas del hotel con Playwright.
 ├── vuelos.py       Orquesta la cotización de vuelos.
-├── vuelos_serp.py  Vueling y Air Europa vía SerpApi (motor google_flights).
-├── volotea.py      Volotea, leída de su propia web (Google no la indexa).
+├── aireuropa.py    Air Europa, leída de su propia web (directo a TFN).
+├── volotea.py      Volotea, leída de su propia web (directo a TFS).
+├── vuelos_serp.py  Google Vuelos vía SerpApi, dormido hasta septiembre 2026.
 ├── otas.py         Booking, Expedia... vía Google Hotels (SerpApi).
 ├── combinar.py     Suma hotel + vuelos por fechas para dar el viaje entero.
 ├── notify.py       Avisos por Telegram.
@@ -78,17 +79,37 @@ scraper/
 └── main.py         Orquesta todo y guarda el histórico.
 ```
 
-### Vuelos: quién vuela a dónde
+### Vuelos: quién vuela a dónde, y quién vende ya
 
-Comprobado el 27-ago-2026. Es el dato que más condiciona las fechas:
+Comprobado a mano en las webs de las aerolíneas el **27-ago-2026**:
 
-| Ruta | Aerolíneas | Frecuencia | Del aeropuerto al hotel |
-|---|---|---|---|
-| BIO → **TFS** (Tenerife Sur) | Volotea | 2 por semana (mié y dom) | ~45 min |
-| BIO → **TFN** (Tenerife Norte) | Vueling, Air Europa | 16 por semana, a diario | ~1 h 15 |
+| Aerolínea | Aeropuerto | Días de directo | ¿Agosto 2027 a la venta? | Al hotel |
+|---|---|---|---|---|
+| **Volotea** | Tenerife Sur | mié y dom | **Sí** | ~45 min |
+| **Air Europa** | Tenerife Norte | mar, jue y sáb | **Sí** | ~1 h 15 |
+| Vueling | Tenerife Norte | a diario | **No** (su calendario acaba el 13-jun-2027) | ~1 h 15 |
 
-Si se acepta aterrizar en el Norte, la entrada al hotel deja de estar atada a
-los miércoles y domingos de Volotea, a cambio de media hora más de coche.
+Precios medidos ese día para 2 adultos + 1 niño, ida y vuelta, directo:
+
+- **Air Europa 660 €** — 3→10 ago, sale 19:35 llega 21:45, vuelve 14:35→18:45.
+  Tarifa Lite: maleta de mano de 10 kg, sin facturar.
+- **Volotea 768 €** — 4→11 ago. Solo bolso bajo el asiento.
+
+O sea que Air Europa sale más barata **y** con más equipaje, a cambio de media
+hora más de coche desde el aeropuerto. Y como su directo va martes, jueves y
+sábado, la entrada al hotel encaja el **sábado 7** o el **jueves 5**, no el
+domingo 8.
+
+### Por qué Google Vuelos no vale (todavía)
+
+Google no cotiza más allá de unos **330 días**: el 27-ago-2026 aceptaba el
+21-jul-2027 y rechazaba el 24-jul-2027 con "la fecha solicitada para el vuelo
+es demasiado lejana". Agosto de 2027 entra en su rango hacia el **20-sep-2026**.
+
+Por eso `vuelos_serp.py` no gasta ni una búsqueda hasta entonces
+(`HORIZONTE_DIAS`), y mientras tanto los precios salen de las webs de las
+aerolíneas. Cuando Google alcance las fechas, SerpApi entra solo y traerá
+además a Vueling.
 
 En cada pasada consulta las **35 combinaciones de fechas** que incluyen la noche del
 8 de agosto (estancias de 5 a 9 noches), se queda solo con Todo Incluido cancelable
@@ -145,15 +166,19 @@ diario se come el margen deprisa.
 - **Solo rastrea la web oficial del hotel.** Booking, eDreams, Logitravel y compañía
   tienen anti-bots serios y meterlos aquí daría más falsos positivos que otra cosa.
   Para esos, la comparativa manual sigue mereciendo la pena de vez en cuando.
-- Los vuelos de Vueling y Air Europa vienen de **Google Flights a través de
-  SerpApi**. Hasta el 27-ago-2026 se raspaba Google Flights directamente con
-  Playwright y desde GitHub Actions no funcionó **ni una sola vez** en 52
-  pasadas: Google bloquea las IPs de centro de datos. Si algún día vuelve a
-  aparecer "no se pudo comprobar la venta de vuelos", lo primero que hay que
-  mirar es si queda cuota en la clave de SerpApi.
-- **Volotea se lee raspando su web** y eso es frágil por definición. Si su
-  calendario cambia de maquetación, el módulo devuelve lista vacía y lo dice en
-  el log, pero no inventa precios.
+- **Las dos aerolíneas se leen raspando sus webs**, y eso es frágil por
+  definición. Si un calendario cambia de maquetación, el módulo devuelve lista
+  vacía y lo dice en el log, pero no inventa precios. Los selectores concretos
+  están documentados en la cabecera de cada módulo.
+- En Air Europa, **qué días tienen vuelo directo se deduce del precio**: su
+  calendario da el más barato de cada día sin decir si es directo. Se marcan
+  como directos los días que no pasan de `MARGEN_DIRECTO` veces el precio del
+  directo que sí se ha leído. Con los datos reales el corte es nítido (328 € el
+  directo contra 674 € vía Madrid), pero solo el día cuya tarjeta se ha leído
+  lleva `directo_confirmado`.
+- El raspado de Google Flights con Playwright se conserva pero **desde GitHub
+  Actions no funcionó ni una sola vez** en 52 pasadas: Google bloquea las IPs
+  de centro de datos. Solo sirve ejecutando el rastreo en un portátil.
 - El precio de vuelo **no incluye equipaje facturado**. Con Volotea la tarifa
   base es solo bolso de mano; con Vueling y Air Europa depende de la tarifa.
   Tampoco entra el coche de alquiler, que sale algo más caro desde el Norte.

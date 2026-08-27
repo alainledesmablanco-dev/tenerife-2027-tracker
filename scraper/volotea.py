@@ -2,11 +2,9 @@
 
 Por qué existe este módulo
 --------------------------
-Google Flights no lista Volotea en esta ruta. El rastreo decía "vuelos
-cerrados" mientras Volotea llevaba semanas vendiendo agosto de 2027: un falso
-negativo que dejaba el viaje entero sin cotizar. Ryanair tiene el mismo
-problema por decisión propia, así que la lección es general: en rutas con
-low-cost hay que ir a la web de la aerolínea.
+Google no indexa Volotea en esta ruta. El rastreo decía "vuelos cerrados"
+mientras Volotea llevaba semanas vendiendo agosto de 2027: un falso negativo
+que dejaba el viaje entero sin cotizar.
 
 El hallazgo importante
 ----------------------
@@ -14,16 +12,38 @@ El hallazgo importante
 ventanas de fechas teóricas a un puñado de combinaciones reservables. De nada
 sirve encontrar la estancia de hotel más barata si empieza un martes.
 
-Cómo se lee
------------
-No se recorre el flujo de reserva entero, que es largo y frágil. Basta el
-calendario: con 1 pasajero muestra el precio por persona de cada día con vuelo.
-Se lee el mes de ida, se pincha un día y se lee el mes de vuelta. Dos lecturas
-y salen todas las combinaciones.
+Cómo se lee (reescrito el 27-ago-2026)
+--------------------------------------
+La versión anterior avanzaba el calendario mes a mes hasta llegar a agosto de
+2027, clicando una flecha localizada así:
 
-Verificado el 15-ago-2026 contra la web: ida mié 4-ago-2027 127,47 € + vuelta
-mié 11-ago-2027 102,79 € = 230,26 €/persona, 690,79 € para 2 adultos y 1 niño.
-El calendario mostraba 128 € y 103 €, así que redondea al euro por arriba.
+    page.locator("[class*='calendar'] button, [class*='datepicker'] button").last
+
+Ese `.last` no era la flecha de avanzar: era el último botón que casaba, que
+según el momento podía ser el interruptor de "Solo ida" o una celda del
+calendario. El módulo devolvía lista vacía en todas las pasadas.
+
+Mirando el DOM real resulta que no hace falta navegar nada: Volotea **pinta de
+una vez los 457 días** del calendario, del 1-ago-2026 al 31-oct-2027, cada uno
+como
+
+    <button volotea-calendar-day data-date="2027-08-04T00:00:00.000Z" ...>
+      <time class="c-calendar-day__number">4</time>
+      <p class="c-calendar-day__price">128€</p>
+    </button>
+
+Así que basta abrir el calendario una vez y leer todos los `data-date`. Se
+acabaron las flechas, los nombres de mes y el contar cuántos saltos faltan.
+La fecha se lee del atributo, no del número pintado, que era la otra fuente de
+errores: el calendario muestra dos meses a la vez y los días de uno se colaban
+como si fueran del otro.
+
+Comprobado el 27-ago-2026 contra la web, con el calendario delante:
+
+    1 ago dom 154€ · 4 ago mié 128€ · 8 ago dom 154€ · 11 ago mié 128€
+    15 ago dom 154€ · 18 ago mié 103€ · 22 ago dom 128€ · 25 ago mié 103€
+
+Precio por persona y por trayecto, aunque el buscador lleve 3 pasajeros.
 
 Aviso sobre el equipaje
 -----------------------
@@ -37,9 +57,9 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, asdict
-from datetime import date, timedelta
+from datetime import date
 
-from playwright.sync_api import Page, TimeoutError as PWTimeout
+from playwright.sync_api import Page
 
 from . import config as cfg
 
@@ -49,15 +69,14 @@ INICIO = "https://www.volotea.com/es/"
 AEROLINEA = "Volotea"
 DESTINO = "TFS"
 DESTINO_NOMBRE = "Tenerife Sur"
+FUENTE = "web de Volotea"
 
-# Volotea escribe "128€" en las celdas del calendario.
+# Los selectores que de verdad existen en su calendario.
+SEL_DIA = "button[volotea-calendar-day][data-date]"
+SEL_PRECIO = ".c-calendar-day__price"
+
 PRECIO_CELDA = re.compile(r"(\d[\d.,]*)\s*€")
-
-MESES = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
-         "agosto", "septiembre", "octubre", "noviembre", "diciembre")
-
 PRECIO_MIN, PRECIO_MAX = 20.0, 1500.0
-MAX_SALTOS = 30
 
 
 @dataclass
@@ -70,8 +89,8 @@ class Tramo:
 
 
 def _a_float(crudo: str) -> float | None:
+    """'128' → 128.0 ; '1.234,56' → 1234.56. None si no es un precio creíble."""
     txt = crudo.strip()
-    # "1.234,56" → 1234.56 ; "128" → 128.0
     if "," in txt:
         txt = txt.replace(".", "").replace(",", ".")
     else:
@@ -84,7 +103,7 @@ def _a_float(crudo: str) -> float | None:
 
 
 def _rechazar_cookies(page: Page) -> None:
-    for etiqueta in ("Aceptar solo las esenciales", "Rechazar", "Reject"):
+    for etiqueta in ("Aceptar solo las esenciales", "Rechazar", "Reject", "Solo esenciales"):
         try:
             boton = page.get_by_role("button", name=etiqueta)
             if boton.count():
@@ -102,61 +121,67 @@ def _abrir_buscador(page: Page) -> bool:
         _rechazar_cookies(page)
         page.wait_for_timeout(1500)
 
-        # El destino abre un panel con tarjetas por aeropuerto.
-        page.get_by_text("Seleccionar aeropuerto").first.click(timeout=8000)
-        page.wait_for_timeout(2500)
-        page.get_by_text(DESTINO_NOMBRE, exact=True).first.click(timeout=8000)
-        page.wait_for_timeout(4000)
+        # El destino abre un panel con tarjetas por aeropuerto. Si el buscador
+        # ya viene con el destino puesto (cookies de una visita anterior) el
+        # panel no aparece y no pasa nada: se sigue adelante.
+        try:
+            page.get_by_text("Seleccionar aeropuerto").first.click(timeout=8000)
+            page.wait_for_timeout(2500)
+            page.get_by_text(DESTINO_NOMBRE, exact=True).first.click(timeout=8000)
+            page.wait_for_timeout(4000)
+        except Exception:  # noqa: BLE001
+            log.info("Volotea: el destino ya estaba puesto o el panel no salió")
         return True
     except Exception as exc:  # noqa: BLE001
         log.warning("Volotea: no se pudo preparar el buscador (%s)", exc)
         return False
 
 
-def _avanzar_hasta(page: Page, objetivo: date) -> bool:
-    """Adelanta el calendario hasta que se vea el mes objetivo."""
-    etiqueta = f"{MESES[objetivo.month - 1]} {objetivo.year}"
-    for _ in range(MAX_SALTOS):
+def _abrir_calendario(page: Page) -> bool:
+    """Despliega el calendario de fechas."""
+    for etiqueta in ("Ida", "Fecha de ida", "Salida"):
         try:
-            visible = page.locator("body").inner_text(timeout=8000).lower()
-        except PWTimeout:
-            return False
-        if etiqueta in visible:
-            return True
-        try:
-            # La flecha de avanzar mes; sin nombre accesible fiable, se toma
-            # el último botón de navegación de la cabecera del calendario.
-            page.locator("[class*='calendar'] button, [class*='datepicker'] button"
-                         ).last.click(timeout=5000)
+            page.get_by_text(etiqueta, exact=True).first.click(timeout=6000)
+            page.wait_for_timeout(2500)
+            if page.locator(SEL_DIA).count():
+                return True
         except Exception:  # noqa: BLE001
-            return False
-        page.wait_for_timeout(500)
-    return False
+            continue
+    return bool(page.locator(SEL_DIA).count())
 
 
-def _leer_mes(page: Page, mes: date) -> list[Tramo]:
-    """Devuelve los días del mes con vuelo y su precio por persona."""
+def leer_calendario(page: Page) -> list[Tramo]:
+    """Todos los días con precio que haya pintados, leyendo `data-date`.
+
+    No navega por meses: Volotea ya trae más de un año de calendario en el DOM.
+    """
     tramos: list[Tramo] = []
-    dias = page.locator("td:has-text('€'), [role='gridcell']:has-text('€')")
-    for i in range(min(dias.count(), 62)):
+    dias = page.locator(SEL_DIA)
+    total = dias.count()
+    for i in range(total):
+        dia = dias.nth(i)
         try:
-            txt = dias.nth(i).inner_text(timeout=2500)
+            iso = (dia.get_attribute("data-date") or "")[:10]
+            if not iso:
+                continue
+            precio_txt = dia.locator(SEL_PRECIO)
+            if not precio_txt.count():
+                continue           # día sin vuelo
+            crudo = precio_txt.first.inner_text(timeout=2000)
         except Exception:  # noqa: BLE001
             continue
-        m_dia = re.match(r"\s*(\d{1,2})\b", txt)
-        m_precio = PRECIO_CELDA.search(txt)
-        if not (m_dia and m_precio):
+        m = PRECIO_CELDA.search(crudo)
+        if not m:
             continue
-        precio = _a_float(m_precio.group(1))
+        precio = _a_float(m.group(1))
         if precio is None:
             continue
-        numero = int(m_dia.group(1))
         try:
-            dia = mes.replace(day=numero)
+            date.fromisoformat(iso)
         except ValueError:
             continue
-        tramos.append(Tramo(fecha=dia.isoformat(), precio=precio))
-    # El calendario pinta dos meses; nos quedamos con los del mes pedido.
+        tramos.append(Tramo(fecha=iso, precio=precio))
+    log.info("Volotea: %d celdas de calendario, %d con precio", total, len(tramos))
     return tramos
 
 
@@ -188,9 +213,9 @@ def _combinar(idas: list[Tramo], vueltas: list[Tramo]) -> list[dict]:
                 "precio_total": round(por_persona * cfg.PASAJEROS, 2),
                 "escalas": "directo",
                 "equipaje": "solo bolso de mano",
-                "fuente": "web de Volotea",
+                "fuente": FUENTE,
             })
-    ofertas.sort(key=lambda o: o["precio"])
+    ofertas.sort(key=lambda o: o["precio_total"])
     return ofertas
 
 
@@ -199,39 +224,31 @@ def buscar(page: Page) -> tuple[list[dict], str]:
     if not _abrir_buscador(page):
         return [], "No se pudo abrir el buscador de Volotea"
 
-    mes = cfg.NOCHE_OBLIGATORIA.replace(day=1)
-    if not _avanzar_hasta(page, mes):
-        return [], f"No se alcanzó {MESES[mes.month - 1]} {mes.year} en Volotea"
+    if not _abrir_calendario(page):
+        return [], "No se pudo abrir el calendario de Volotea"
 
-    idas = _leer_mes(page, mes)
-    if not idas:
-        return [], "Volotea no muestra vuelos para ese mes"
-    log.info("Volotea: %d días con vuelo de ida", len(idas))
+    tramos = leer_calendario(page)
+    if not tramos:
+        return [], "El calendario de Volotea no trae precios"
 
-    # Al pinchar una ida, el calendario pasa a mostrar precios de vuelta.
-    referencia = min(idas, key=lambda t: abs(
-        (date.fromisoformat(t.fecha) - cfg.NOCHE_OBLIGATORIA).days))
-    try:
-        page.get_by_text(str(date.fromisoformat(referencia.fecha).day),
-                         exact=True).first.click(timeout=6000)
-        page.wait_for_timeout(3000)
-    except Exception as exc:  # noqa: BLE001
-        log.warning("Volotea: no se pudo abrir el calendario de vuelta (%s)", exc)
-        return [], "No se pudieron leer las vueltas de Volotea"
+    mes = cfg.NOCHE_OBLIGATORIA.strftime("%Y-%m")
+    del_mes = [t for t in tramos if t.fecha.startswith(mes)]
+    if not del_mes:
+        return [], (f"Volotea todavía no vende {mes}: su calendario llega hasta "
+                    f"{max(t.fecha for t in tramos)}")
 
-    vueltas = _leer_mes(page, mes)
-    siguiente = (mes + timedelta(days=32)).replace(day=1)
-    vueltas += _leer_mes(page, siguiente)
-
-    ofertas = _combinar(idas, vueltas)
+    # El mismo calendario sirve de ida y de vuelta: Volotea pinta el precio por
+    # trayecto de cada día, no un precio de ida y vuelta. Antes se pinchaba un
+    # día para "abrir las vueltas", un paso frágil que no aportaba nada.
+    ofertas = _combinar(del_mes, del_mes)
     if not ofertas:
-        return [], "Volotea vuela ese mes, pero ninguna combinación cubre la noche del 8"
+        return [], (f"Volotea vuela en {mes}, pero ninguna combinación cubre "
+                    f"la noche del {cfg.NOCHE_OBLIGATORIA.day}")
 
     mejor = ofertas[0]
     detalle = (
-        f"Volotea directo desde {mejor['precio']:.0f} €/persona "
-        f"({mejor['precio_total']:.0f} € los {cfg.PASAJEROS}), "
-        f"{mejor['ida']} → {mejor['vuelta']} ({mejor['noches']} noches). "
-        f"Solo bolso de mano."
+        f"Volotea directo desde {mejor['precio_total']:.0f} € los {cfg.PASAJEROS} "
+        f"({mejor['precio']:.0f} €/persona), {mejor['ida']} → {mejor['vuelta']} "
+        f"({mejor['noches']} noches). Solo bolso de mano."
     )
     return ofertas, detalle

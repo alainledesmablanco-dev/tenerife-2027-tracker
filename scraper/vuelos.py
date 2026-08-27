@@ -70,6 +70,7 @@ from urllib.parse import urlencode
 from playwright.sync_api import sync_playwright
 
 from . import config as cfg
+from . import aireuropa
 from . import volotea
 from . import vuelos_serp
 
@@ -399,6 +400,57 @@ def _solo_directos(ofertas: list[dict], codigo: str) -> list[dict]:
     return directos
 
 
+def _con_navegador(trabajo):
+    """Abre un Chromium limpio y le pasa la pagina a `trabajo`.
+
+    Cada aerolinea usa su propio navegador a proposito: compartir la pagina
+    entre Google y una web de aerolinea arrastraba muros de consentimiento y
+    estado de sesion de una a otra, y era imposible saber cual de las dos habia
+    fallado.
+    """
+    with sync_playwright() as p:
+        navegador = p.chromium.launch(
+            args=["--disable-blink-features=AutomationControlled"]
+        )
+        contexto = navegador.new_context(
+            locale="es-ES",
+            timezone_id="Europe/Madrid",
+            viewport={"width": 1440, "height": 1000},
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+            ),
+        )
+        pagina = contexto.new_page()
+        try:
+            return trabajo(pagina)
+        finally:
+            contexto.close()
+            navegador.close()
+
+
+def _aireuropa(ventanas) -> tuple[list[dict], str]:
+    """Air Europa: directo a Tenerife Norte, martes, jueves y sabado.
+
+    Una sola busqueda basta: su buscador devuelve unos 15 dias de calendario
+    por tramo, asi que cubre todas las ventanas del hotel de una vez.
+    """
+    if not ventanas:
+        return [], "Sin fechas que consultar en Air Europa"
+    ida, vuelta, _ = ventanas[0]
+    try:
+        ofertas, detalle = _con_navegador(
+            lambda pagina: aireuropa.buscar(pagina, ida, vuelta))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Air Europa: fallo leyendo su web (%s)", exc)
+        return [], f"Air Europa no se pudo leer ({exc})"
+    if ofertas:
+        log.info("Air Europa: %d combinaciones. %s", len(ofertas), detalle)
+    else:
+        log.info("Air Europa: %s", detalle)
+    return ofertas, detalle
+
+
 def _volotea(ventanas) -> tuple[list[dict], str | None]:
     """Volotea con su propio navegador. Google no la indexa en esta ruta."""
     try:
@@ -510,15 +562,25 @@ def buscar(ventanas: list[tuple[date, date, int]] | None = None
         ofertas_s, estados_s = vuelos_serp.buscar(ventanas)
         todas.extend(ofertas_s)
         estados.extend(estados_s)
-    else:
+    elif any(vuelos_serp.dentro_de_horizonte(v[1]) for v in ventanas):
         log.info("Sin SERPAPI_KEY: se intenta leer Google Flights raspando")
         ofertas_g, estados_g = _scraping_google(ventanas)
         todas.extend(ofertas_g)
         estados.extend(estados_g)
+    else:
+        # Sin clave Y fuera del horizonte de Google: abrir el navegador para
+        # que nos diga "fecha demasiado lejana" son dos minutos tirados.
+        log.info("Google no cotiza tan lejos todavia; se salta el raspado")
+        estados.append("fuera_de_horizonte")
 
     ofertas_v, _detalle_v = _volotea(ventanas)
     if ofertas_v:
         todas.extend(ofertas_v)
+        estados.append("ok")
+
+    ofertas_ae, _detalle_ae = _aireuropa(ventanas)
+    if ofertas_ae:
+        todas.extend(ofertas_ae)
         estados.append("ok")
 
     if todas:
@@ -544,6 +606,12 @@ def buscar(ventanas: list[tuple[date, date, int]] | None = None
         return False, (
             "Todavia no hay vuelos a la venta para esas fechas. "
             "Las aerolineas suelen abrir la venta 10-12 meses antes"
+        ), []
+
+    if "fuera_de_horizonte" in estados:
+        return False, (
+            "Ninguna aerolinea devolvio precios. Google Vuelos no llega tan "
+            "lejos todavia, asi que solo cuentan las webs de las aerolineas"
         ), []
 
     return False, (

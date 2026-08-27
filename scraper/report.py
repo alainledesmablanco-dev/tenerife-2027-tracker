@@ -131,7 +131,8 @@ document.getElementById("kRunsNote").textContent =
   (DATA.registros || []).length + " comprobaciones · 2 al día";
 document.getElementById("kFly").textContent = DATA.vuelos_abiertos ? "Abiertos" : "Cerrados";
 const ultimo = (DATA.registros || []).slice(-1)[0] || {};
-document.getElementById("kFlyNote").textContent = ultimo.detalle_vuelos || "";
+document.getElementById("kFlyNote").textContent =
+  DATA.detalle_vuelos || ultimo.detalle_vuelos || "";
 
 const b = document.getElementById("banner");
 if (DATA.vuelos_abiertos) {
@@ -253,13 +254,16 @@ const vb = document.querySelector("#v tbody");
 });
 let notaVuelos = "";
 if (!vb.rows.length) {
-  vacio(vb, 6, ultimo.detalle_vuelos || "Todavía no hay vuelos a la venta.");
+  vacio(vb, 6, DATA.detalle_vuelos || ultimo.detalle_vuelos ||
+    "Todavía no hay vuelos a la venta.");
 } else {
   const fuentes = [...new Set((DATA.ofertas_vuelos || []).map(f => f.fuente).filter(Boolean))];
   notaVuelos = "Solo vuelos directos, ida y vuelta, precio de los " + pax +
-    " pasajeros juntos. Volotea vuela a Tenerife SUR (~45 min del hotel) y solo" +
-    " miércoles y domingos; Vueling y Air Europa vuelan a Tenerife NORTE" +
-    " (~1 h 15 del hotel) a diario. Equipaje facturado aparte." +
+    " pasajeros juntos. Volotea vuela a Tenerife SUR (~45 min del hotel) los" +
+    " miércoles y domingos, con solo bolso de mano; Air Europa vuela a Tenerife" +
+    " NORTE (~1 h 15 del hotel) los martes, jueves y sábados, tarifa Lite con" +
+    " maleta de mano de 10 kg. Ninguna incluye equipaje facturado, y Vueling" +
+    " todavía no vende estas fechas." +
     (fuentes.length ? " Fuente: " + fuentes.join(", ") + "." : "") +
     " Leído el " + (DATA.vuelos_actualizado || "—") + ".";
 }
@@ -306,6 +310,7 @@ def generar(datos: dict, destino: Path) -> None:
         "otas_comprobado": datos.get("otas_comprobado"),
         "ofertas_vuelos": datos.get("ofertas_vuelos", []),
         "vuelos_actualizado": datos.get("vuelos_actualizado"),
+        "detalle_vuelos": datos.get("detalle_vuelos"),
         "combinaciones": datos.get("combinaciones", []),
         "pasajeros": datos.get("pasajeros", 3),
         "registros": [

@@ -64,21 +64,27 @@ MAX_VENTANAS_VUELOS = 3
 # por Alain el 15-ago-2026). Ryanair, Binter e Iberia se han quitado: no
 # operan la ruta, y tenerlas en la lista solo servia para buscar en balde.
 #
-# Cobertura de cada una (revisado el 27-ago-2026 con flightconnections):
-#   Volotea    -> modulo propio (volotea.py). Vuela a Tenerife SUR (TFS), a
-#                 45 min del hotel, y solo miercoles y domingos.
-#   Vueling    -> Tenerife NORTE (TFN). Via SerpApi.
-#   Air Europa -> Tenerife NORTE (TFN). Via SerpApi.
+# Estado de cada una, comprobado a mano en sus webs el 27-ago-2026:
+#
+#   Volotea    -> Tenerife SUR (TFS), a 45 min del hotel. Solo miercoles y
+#                 domingos. AGOSTO 2027 YA A LA VENTA. Modulo: volotea.py
+#   Air Europa -> Tenerife NORTE (TFN), a ~1 h 15 del hotel. Directo martes,
+#                 jueves y sabado (19:35->21:45 la ida, 14:35->18:45 la
+#                 vuelta). AGOSTO 2027 YA A LA VENTA. Modulo: aireuropa.py
+#   Vueling    -> Tenerife NORTE. TODAVIA NO VENDE agosto 2027: su calendario
+#                 se corta el 13-jun-2027. No hay modulo porque no hay nada
+#                 que leer; cuando abra la venta entrara por SerpApi.
 #
 # El dato que cambia el plan del viaje: BIO-TFS son 2 vuelos por semana y
-# BIO-TFN son 16, a diario. Es decir, si se acepta aterrizar en el Norte
-# (~1 h 15 del hotel en vez de 45 min) la fecha de entrada deja de estar atada
-# a los miercoles y domingos de Volotea.
+# BIO-TFN son 16. Si se acepta aterrizar en el Norte, la fecha de entrada deja
+# de estar atada a los miercoles y domingos de Volotea.
 #
-# Hasta el 27-ago-2026 Vueling y Air Europa se leian raspando Google Flights
-# con Playwright, y desde GitHub Actions eso NUNCA funciono: Google bloquea las
-# IPs de centro de datos y las 52 pasadas terminaron en "no se pudo leer".
-# Ahora se piden por SerpApi (vuelos_serp.py), que consulta desde sus IPs.
+# Por que ya no se raspa Google Flights: desde GitHub Actions NUNCA funciono
+# (Google bloquea las IPs de centro de datos) y las 52 pasadas terminaron en
+# "no se pudo leer". Se cambio a SerpApi... que tampoco sirve todavia, porque
+# Google no cotiza a mas de ~330 dias vista. Agosto de 2027 entrara en su
+# rango hacia el 20-sep-2026; hasta entonces mandan las webs de las
+# aerolineas. Ver HORIZONTE_DIAS en vuelos_serp.py.
 AEROLINEAS = [
     ("Volotea", "https://www.volotea.com/es/"),
     ("Vueling", "https://www.vueling.com/es"),

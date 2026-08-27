@@ -79,6 +79,14 @@ NOMBRE_AEROPUERTO = {"TFS": "Tenerife Sur", "TFN": "Tenerife Norte"}
 PRECIO_MIN = 60.0
 PRECIO_MAX = 6000.0
 
+# Google Vuelos no cotiza mas alla de ~330 dias: a partir de ahi responde "la
+# fecha solicitada para el vuelo es demasiado lejana". Comprobado el
+# 27-ago-2026: acepta hasta el 21-jul-2027 (328 dias) y rechaza el 24-jul-2027
+# (331 dias). Preguntar por agosto de 2027 antes de que entre en ese rango
+# gasta cuota de SerpApi para recibir un vacio garantizado, asi que no se
+# pregunta. Agosto de 2027 empieza a ser visible hacia el 20-sep-2026.
+HORIZONTE_DIAS = 328
+
 
 def configurado() -> bool:
     return bool(os.environ.get("SERPAPI_KEY"))
@@ -211,14 +219,31 @@ def _consultar(ida: date, vuelta: date) -> tuple[list[dict], str]:
     return ofertas, "ok"
 
 
-def buscar(ventanas: list[tuple[date, date, int]]) -> tuple[list[dict], list[str]]:
-    """Cotiza varias ventanas. Devuelve (ofertas, estados)."""
+def dentro_de_horizonte(vuelta: date, hoy: date | None = None) -> bool:
+    """True si Google puede cotizar esa fecha todavia."""
+    return (vuelta - (hoy or date.today())).days <= HORIZONTE_DIAS
+
+
+def buscar(ventanas: list[tuple[date, date, int]],
+           hoy: date | None = None) -> tuple[list[dict], list[str]]:
+    """Cotiza varias ventanas. Devuelve (ofertas, estados).
+
+    `hoy` existe para las pruebas: permite fijar el dia y comprobar tanto el
+    caso normal como el corte por horizonte sin depender del calendario.
+    """
     if not configurado():
         return [], []
 
+    alcanzables = [v for v in ventanas if dentro_de_horizonte(v[1], hoy)]
+    if not alcanzables:
+        proxima = min(v[1] for v in ventanas) if ventanas else None
+        log.info("Vuelos SerpApi: %s esta a mas de %d dias; Google todavia no "
+                 "cotiza esas fechas, no se gasta cuota", proxima, HORIZONTE_DIAS)
+        return [], ["fuera_de_horizonte"]
+
     ofertas: list[dict] = []
     estados: list[str] = []
-    for ida, vuelta, _noches in ventanas:
+    for ida, vuelta, _noches in alcanzables:
         encontradas, estado = _consultar(ida, vuelta)
         estados.append(estado)
         ofertas.extend(encontradas)

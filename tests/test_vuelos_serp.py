@@ -16,6 +16,9 @@ os.environ["SERPAPI_KEY"] = "clave-de-prueba"
 
 from scraper import combinar, vuelos_serp   # noqa: E402
 
+# Un dia en el que agosto de 2027 ya esta dentro del horizonte de Google.
+DENTRO = date(2027, 1, 15)
+
 RESPUESTA_OK = {
     "best_flights": [{
         "flights": [{
@@ -92,7 +95,8 @@ def _parchear(payload):
 
 def test_lectura_normal():
     llamadas = _parchear(RESPUESTA_OK)
-    ofertas, estados = vuelos_serp.buscar([(date(2027, 8, 8), date(2027, 8, 15), 7)])
+    ofertas, estados = vuelos_serp.buscar(
+        [(date(2027, 8, 8), date(2027, 8, 15), 7)], hoy=DENTRO)
 
     assert estados == ["ok"], estados
     assert len(ofertas) == 2, [o["aerolinea"] for o in ofertas]
@@ -118,10 +122,29 @@ def test_lectura_normal():
 
 def test_sin_resultados_no_es_error():
     _parchear(SIN_RESULTADOS)
-    ofertas, estados = vuelos_serp.buscar([(date(2027, 8, 8), date(2027, 8, 15), 7)])
+    ofertas, estados = vuelos_serp.buscar(
+        [(date(2027, 8, 8), date(2027, 8, 15), 7)], hoy=DENTRO)
     assert ofertas == []
     assert estados == ["sin_vuelos"], estados
     print("OK 'todavia no hay vuelos' se distingue de 'fallo la consulta'")
+
+
+def test_no_gasta_cuota_fuera_de_horizonte():
+    """Google rechaza fechas a mas de ~330 dias; preguntar seria tirar cuota."""
+    llamadas = _parchear(RESPUESTA_OK)
+    ofertas, estados = vuelos_serp.buscar(
+        [(date(2027, 8, 8), date(2027, 8, 15), 7)], hoy=date(2026, 8, 27))
+    assert ofertas == []
+    assert estados == ["fuera_de_horizonte"], estados
+    assert llamadas == [], "se ha llamado a SerpApi para nada"
+
+    # El 20-sep-2026 el 15-ago-2027 ya cae dentro y si se pregunta.
+    llamadas = _parchear(RESPUESTA_OK)
+    _, estados = vuelos_serp.buscar(
+        [(date(2027, 8, 8), date(2027, 8, 15), 7)], hoy=date(2026, 9, 25))
+    assert estados == ["ok"], estados
+    assert len(llamadas) == 1
+    print("OK no se consulta a Google antes de que alcance las fechas")
 
 
 def test_combinar_no_triplica_el_total():
@@ -146,5 +169,6 @@ def test_combinar_no_triplica_el_total():
 if __name__ == "__main__":
     test_lectura_normal()
     test_sin_resultados_no_es_error()
+    test_no_gasta_cuota_fuera_de_horizonte()
     test_combinar_no_triplica_el_total()
     print("\nTodo correcto.")

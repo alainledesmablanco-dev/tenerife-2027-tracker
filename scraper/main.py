@@ -210,11 +210,16 @@ def main() -> int:
         elif abiertos:
             datos["vuelos_abiertos"] = True
         datos["vuelos_comprobado"] = sello.strftime("%Y-%m-%d %H:%M")
+        # Tambien fuera del registro: en modo SOLO_VUELOS no se anade registro,
+        # y el panel se quedaba enseñando el "no se pudo leer" de la pasada
+        # anterior con los vuelos nuevos delante en la tabla.
+        datos["detalle_vuelos"] = detalle
     else:
         log.info("Los vuelos ya se cotizaron hoy; se omite")
         ofertas_vuelos = datos.get("ofertas_vuelos") or []
         abiertos = datos.get("vuelos_abiertos", False)
-        detalle = (datos.get("registros") or [{}])[-1].get("detalle_vuelos") or ""
+        detalle = (datos.get("detalle_vuelos")
+                   or (datos.get("registros") or [{}])[-1].get("detalle_vuelos") or "")
 
     combinaciones = combinar.calcular(mejores, ofertas_vuelos)
 
