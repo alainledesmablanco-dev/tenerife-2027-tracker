@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": false,
-  "ultima_comprobacion": "2026-08-28 16:57",
+  "ultima_comprobacion": "2026-08-28 17:20",
   "tarifas_actuales": [
     {
       "entrada": "2027-08-08",
@@ -1273,6 +1273,6 @@
   "vuelos_actualizado": "2026-08-27 19:31",
   "combinaciones": [],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-08-28 16:57",
+  "vuelos_comprobado": "2026-08-28 17:20",
   "detalle_vuelos": "Ninguna aerolinea devolvio precios. Google Vuelos no llega tan lejos todavia, asi que solo cuentan las webs de las aerolineas"
 }
