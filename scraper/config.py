@@ -91,6 +91,31 @@ AEROLINEAS = [
     ("Air Europa", "https://www.aireuropa.com/es/es"),
 ]
 
+# Lectores de aerolineas dormidos hasta septiembre de 2026
+# ---------------------------------------------------------------------
+# Los dos raspan la web de la aerolinea y ninguno funciona desde un runner de
+# GitHub Actions. Se dejan apagados para no gastar medio minuto por pasada en
+# fallar, y sobre todo para que el panel no enseñe errores de algo que ya
+# sabemos que no puede ir:
+#
+#   Air Europa  su CDN bloquea las IPs de centro de datos. Lo que llega no es
+#               su buscador sino "Page Unavailable" con Reference ID y Client
+#               IP. Ningun selector arregla eso. Ver run #59.
+#   Volotea     su web si carga, pero el panel de consentimiento se reinyecta
+#               por encima del buscador y no se ha conseguido rellenar los
+#               campos. Ver runs #62 a #67 y la cabecera de volotea.py.
+#
+# Los dos modulos se conservan enteros, con sus pruebas y con la causa de cada
+# fallo documentada: sirven ejecutando el rastreo en un portatil, desde una IP
+# domestica y con el banner ya respondido.
+#
+# CUANDO VOLVER A ENCENDERLOS: a partir del ~20-sep-2026, Google Vuelos ya
+# alcanza agosto de 2027 y SerpApi cotiza las tres aerolineas por API, sin
+# navegador. Si entonces SerpApi trae los precios, esto puede quedarse
+# apagado para siempre. Si decepciona, aqui esta el trabajo hecho.
+LEER_VOLOTEA = False
+LEER_AIREUROPA = False
+
 # --------------------------------------------------------------- otros
 TIMEOUT_MS = 45_000
 PAUSA_ENTRE_BUSQUEDAS = 2.0   # segundos, por cortesía con el servidor

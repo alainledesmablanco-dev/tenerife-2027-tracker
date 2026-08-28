@@ -56,7 +56,7 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import date
+from datetime import date, timedelta
 
 import requests
 
@@ -222,6 +222,15 @@ def _consultar(ida: date, vuelta: date) -> tuple[list[dict], str]:
 def dentro_de_horizonte(vuelta: date, hoy: date | None = None) -> bool:
     """True si Google puede cotizar esa fecha todavia."""
     return (vuelta - (hoy or date.today())).days <= HORIZONTE_DIAS
+
+
+def desde_cuando(vuelta: date) -> date:
+    """Dia a partir del cual Google empezara a cotizar esa fecha.
+
+    Sirve para que el panel diga "a partir del 20-09-2026" en vez de un
+    generico "todavia no": la diferencia entre una espera y una averia.
+    """
+    return vuelta - timedelta(days=HORIZONTE_DIAS)
 
 
 def buscar(ventanas: list[tuple[date, date, int]],

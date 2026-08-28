@@ -573,15 +573,21 @@ def buscar(ventanas: list[tuple[date, date, int]] | None = None
         log.info("Google no cotiza tan lejos todavia; se salta el raspado")
         estados.append("fuera_de_horizonte")
 
-    ofertas_v, _detalle_v = _volotea(ventanas)
-    if ofertas_v:
-        todas.extend(ofertas_v)
-        estados.append("ok")
+    if cfg.LEER_VOLOTEA:
+        ofertas_v, _detalle_v = _volotea(ventanas)
+        if ofertas_v:
+            todas.extend(ofertas_v)
+            estados.append("ok")
+    else:
+        log.info("Volotea: lector apagado (LEER_VOLOTEA); ver config.py")
 
-    ofertas_ae, _detalle_ae = _aireuropa(ventanas)
-    if ofertas_ae:
-        todas.extend(ofertas_ae)
-        estados.append("ok")
+    if cfg.LEER_AIREUROPA:
+        ofertas_ae, _detalle_ae = _aireuropa(ventanas)
+        if ofertas_ae:
+            todas.extend(ofertas_ae)
+            estados.append("ok")
+    else:
+        log.info("Air Europa: lector apagado (LEER_AIREUROPA); ver config.py")
 
     if todas:
         todas.sort(key=lambda o: o.get("precio_total") or o["precio"])
@@ -609,9 +615,11 @@ def buscar(ventanas: list[tuple[date, date, int]] | None = None
         ), []
 
     if "fuera_de_horizonte" in estados:
+        desde = vuelos_serp.desde_cuando(max(v[1] for v in ventanas))
         return False, (
-            "Ninguna aerolinea devolvio precios. Google Vuelos no llega tan "
-            "lejos todavia, asi que solo cuentan las webs de las aerolineas"
+            f"Google Vuelos todavia no cotiza estas fechas; empezara hacia el "
+            f"{desde.strftime('%d-%m-%Y')}, y entonces SerpApi traera Volotea, "
+            f"Vueling y Air Europa sin navegador"
         ), []
 
     return False, (
