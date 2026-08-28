@@ -175,15 +175,33 @@ def _elegir_aeropuerto(page: Page, selector: str, ciudad: str) -> tuple[bool, st
 
     campo = page.locator(selector).first
     try:
-        campo.click(timeout=8000)
-        page.wait_for_timeout(1500)
-        # Escribir filtra la lista de aeropuertos, que es mas fiable que
-        # buscar el nombre entre las decenas de tarjetas sin filtrar.
+        # focus() en vez de click(). Es la diferencia entre los seis intentos
+        # anteriores y este: click() comprueba que el elemento este despejado
+        # y Volotea reinyecta su panel de consentimiento —servido desde su
+        # propio dominio, asi que el bloqueo por URL no lo caza— encima del
+        # buscador. Playwright reintentaba el click hasta agotar el timeout.
+        # focus() no hace esa comprobacion: pone el cursor en el campo aunque
+        # haya algo por delante, y a partir de ahi se escribe con el teclado,
+        # que tampoco depende de donde este el raton.
+        campo.focus(timeout=8000)
+        page.wait_for_timeout(800)
         campo.fill("", timeout=4000)
-        campo.type(ciudad, delay=90)
+        page.keyboard.type(ciudad, delay=90)
         page.wait_for_timeout(2500)
     except Exception as exc:  # noqa: BLE001
+        depuracion.volcar(page, f"volotea-escritura-{ciudad.lower()}")
         return False, f"No se pudo escribir {ciudad} en {selector} ({exc})"
+
+    # Que el texto haya entrado se comprueba aqui, antes de buscar sugerencias:
+    # si el campo esta vacio, el problema es la escritura y no la lista.
+    try:
+        escrito = (campo.input_value(timeout=3000) or "").strip()
+    except Exception:  # noqa: BLE001
+        escrito = ""
+    if not escrito:
+        depuracion.volcar(page, f"volotea-vacio-{ciudad.lower()}")
+        return False, f"{selector} se quedo vacio tras teclear {ciudad}"
+    log.info("Volotea: tecleado %r en %s", escrito, selector)
 
     # Elegir la sugerencia. Se prueban tres vias porque la portada tiene
     # decenas de elementos ocultos (el megamenu de ayuda) que tambien dicen
