@@ -2,11 +2,9 @@
 
 Por qué existe este módulo
 --------------------------
-Google Flights no lista Volotea en esta ruta. El rastreo decía "vuelos
-cerrados" mientras Volotea llevaba semanas vendiendo agosto de 2027: un falso
-negativo que dejaba el viaje entero sin cotizar. Ryanair tiene el mismo
-problema por decisión propia, así que la lección es general: en rutas con
-low-cost hay que ir a la web de la aerolínea.
+Google no indexa Volotea en esta ruta. El rastreo decía "vuelos cerrados"
+mientras Volotea llevaba semanas vendiendo agosto de 2027: un falso negativo
+que dejaba el viaje entero sin cotizar.
 
 El hallazgo importante
 ----------------------
@@ -14,16 +12,38 @@ El hallazgo importante
 ventanas de fechas teóricas a un puñado de combinaciones reservables. De nada
 sirve encontrar la estancia de hotel más barata si empieza un martes.
 
-Cómo se lee
------------
-No se recorre el flujo de reserva entero, que es largo y frágil. Basta el
-calendario: con 1 pasajero muestra el precio por persona de cada día con vuelo.
-Se lee el mes de ida, se pincha un día y se lee el mes de vuelta. Dos lecturas
-y salen todas las combinaciones.
+Cómo se lee (reescrito el 27-ago-2026)
+--------------------------------------
+La versión anterior avanzaba el calendario mes a mes hasta llegar a agosto de
+2027, clicando una flecha localizada así:
 
-Verificado el 15-ago-2026 contra la web: ida mié 4-ago-2027 127,47 € + vuelta
-mié 11-ago-2027 102,79 € = 230,26 €/persona, 690,79 € para 2 adultos y 1 niño.
-El calendario mostraba 128 € y 103 €, así que redondea al euro por arriba.
+    page.locator("[class*='calendar'] button, [class*='datepicker'] button").last
+
+Ese `.last` no era la flecha de avanzar: era el último botón que casaba, que
+según el momento podía ser el interruptor de "Solo ida" o una celda del
+calendario. El módulo devolvía lista vacía en todas las pasadas.
+
+Mirando el DOM real resulta que no hace falta navegar nada: Volotea **pinta de
+una vez los 457 días** del calendario, del 1-ago-2026 al 31-oct-2027, cada uno
+como
+
+    <button volotea-calendar-day data-date="2027-08-04T00:00:00.000Z" ...>
+      <time class="c-calendar-day__number">4</time>
+      <p class="c-calendar-day__price">128€</p>
+    </button>
+
+Así que basta abrir el calendario una vez y leer todos los `data-date`. Se
+acabaron las flechas, los nombres de mes y el contar cuántos saltos faltan.
+La fecha se lee del atributo, no del número pintado, que era la otra fuente de
+errores: el calendario muestra dos meses a la vez y los días de uno se colaban
+como si fueran del otro.
+
+Comprobado el 27-ago-2026 contra la web, con el calendario delante:
+
+    1 ago dom 154€ · 4 ago mié 128€ · 8 ago dom 154€ · 11 ago mié 128€
+    15 ago dom 154€ · 18 ago mié 103€ · 22 ago dom 128€ · 25 ago mié 103€
+
+Precio por persona y por trayecto, aunque el buscador lleve 3 pasajeros.
 
 Aviso sobre el equipaje
 -----------------------
@@ -37,11 +57,19 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, asdict
-from datetime import date, timedelta
+from datetime import date
 
-from playwright.sync_api import Page, TimeoutError as PWTimeout
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:   # Playwright solo hace falta para navegar. Dejarlo fuera
+    # del import de arriba permite probar los parseadores (que son texto puro)
+    # sin instalar navegadores: son la parte que de verdad se rompe cuando la
+    # web cambia, y tienen que poder ejecutarse en cualquier sitio.
+    from playwright.sync_api import Page
 
 from . import config as cfg
+from . import consentimiento
+from . import depuracion
 
 log = logging.getLogger(__name__)
 
@@ -49,15 +77,28 @@ INICIO = "https://www.volotea.com/es/"
 AEROLINEA = "Volotea"
 DESTINO = "TFS"
 DESTINO_NOMBRE = "Tenerife Sur"
+FUENTE = "web de Volotea"
 
-# Volotea escribe "128€" en las celdas del calendario.
+# Los selectores que de verdad existen en su buscador y su calendario,
+# confirmados leyendo la estructura de la pagina desde el propio runner
+# (run #60). Los tres campos del buscador tienen id estable:
+#
+#   input #input-text_sf-origin        ph "Seleccionar aeropuerto"
+#   input #input-text_sf-destination   ph "Seleccionar aeropuerto"
+#   input #input-text_sf-passenger     ph "PASAJEROS"
+#
+# Origen y destino comparten placeholder, y ahi estaba el fallo de las
+# versiones anteriores: `get_by_text("Seleccionar aeropuerto").first` abria
+# el panel del ORIGEN y despues buscaba "Tenerife Sur" en una lista de
+# aeropuertos de salida. Nunca aparecia, y el timeout se leia como "la web ha
+# cambiado" cuando en realidad estabamos clicando el campo equivocado.
+SEL_ORIGEN = "#input-text_sf-origin"
+SEL_DESTINO = "#input-text_sf-destination"
+SEL_DIA = "button[volotea-calendar-day][data-date]"
+SEL_PRECIO = ".c-calendar-day__price"
+
 PRECIO_CELDA = re.compile(r"(\d[\d.,]*)\s*€")
-
-MESES = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
-         "agosto", "septiembre", "octubre", "noviembre", "diciembre")
-
 PRECIO_MIN, PRECIO_MAX = 20.0, 1500.0
-MAX_SALTOS = 30
 
 
 @dataclass
@@ -70,8 +111,8 @@ class Tramo:
 
 
 def _a_float(crudo: str) -> float | None:
+    """'128' → 128.0 ; '1.234,56' → 1234.56. None si no es un precio creíble."""
     txt = crudo.strip()
-    # "1.234,56" → 1234.56 ; "128" → 128.0
     if "," in txt:
         txt = txt.replace(".", "").replace(",", ".")
     else:
@@ -83,80 +124,214 @@ def _a_float(crudo: str) -> float | None:
     return valor if PRECIO_MIN <= valor <= PRECIO_MAX else None
 
 
-def _rechazar_cookies(page: Page) -> None:
-    for etiqueta in ("Aceptar solo las esenciales", "Rechazar", "Reject"):
-        try:
-            boton = page.get_by_role("button", name=etiqueta)
-            if boton.count():
-                boton.first.click(timeout=4000)
-                return
-        except Exception:  # noqa: BLE001 - el banner es opcional
-            continue
-
-
-def _abrir_buscador(page: Page) -> bool:
-    """Deja el buscador con origen Bilbao y destino Tenerife Sur."""
+def _pulsar_sugerencia(page: Page, ciudad: str) -> bool:
+    """Clica la primera sugerencia VISIBLE que diga la ciudad."""
     try:
-        page.goto(INICIO, wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
-        page.wait_for_timeout(4000)
-        _rechazar_cookies(page)
-        page.wait_for_timeout(1500)
-
-        # El destino abre un panel con tarjetas por aeropuerto.
-        page.get_by_text("Seleccionar aeropuerto").first.click(timeout=8000)
-        page.wait_for_timeout(2500)
-        page.get_by_text(DESTINO_NOMBRE, exact=True).first.click(timeout=8000)
-        page.wait_for_timeout(4000)
-        return True
-    except Exception as exc:  # noqa: BLE001
-        log.warning("Volotea: no se pudo preparar el buscador (%s)", exc)
+        opciones = page.get_by_text(ciudad, exact=True)
+        total = opciones.count()
+    except Exception:  # noqa: BLE001
         return False
-
-
-def _avanzar_hasta(page: Page, objetivo: date) -> bool:
-    """Adelanta el calendario hasta que se vea el mes objetivo."""
-    etiqueta = f"{MESES[objetivo.month - 1]} {objetivo.year}"
-    for _ in range(MAX_SALTOS):
+    for i in range(min(total, 12)):
+        opcion = opciones.nth(i)
         try:
-            visible = page.locator("body").inner_text(timeout=8000).lower()
-        except PWTimeout:
-            return False
-        if etiqueta in visible:
+            if not opcion.is_visible(timeout=1200):
+                continue
+            opcion.click(timeout=5000)
             return True
-        try:
-            # La flecha de avanzar mes; sin nombre accesible fiable, se toma
-            # el último botón de navegación de la cabecera del calendario.
-            page.locator("[class*='calendar'] button, [class*='datepicker'] button"
-                         ).last.click(timeout=5000)
         except Exception:  # noqa: BLE001
-            return False
-        page.wait_for_timeout(500)
+            continue
+    log.info("Volotea: %d elementos dicen %r pero ninguno era clicable",
+             total, ciudad)
     return False
 
 
-def _leer_mes(page: Page, mes: date) -> list[Tramo]:
-    """Devuelve los días del mes con vuelo y su precio por persona."""
-    tramos: list[Tramo] = []
-    dias = page.locator("td:has-text('€'), [role='gridcell']:has-text('€')")
-    for i in range(min(dias.count(), 62)):
+def _teclear_sugerencia(page: Page) -> bool:
+    """Plan B: bajar con el teclado y aceptar, como en cualquier autocompletar."""
+    try:
+        page.keyboard.press("ArrowDown")
+        page.wait_for_timeout(600)
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(1200)
+        log.info("Volotea: sugerencia aceptada con el teclado")
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _elegir_aeropuerto(page: Page, selector: str, ciudad: str) -> tuple[bool, str]:
+    """Rellena uno de los dos campos de aeropuerto y elige la ciudad.
+
+    Se ataca por id, no por placeholder: los dos campos comparten el texto
+    "Seleccionar aeropuerto" y por eso la version anterior acababa siempre en
+    el de origen.
+    """
+    try:
+        page.wait_for_selector(selector, timeout=30_000, state="visible")
+    except Exception as exc:  # noqa: BLE001
+        return False, f"No aparecio el campo {selector} ({exc})"
+
+    # Por si acaso reaparece pese al bloqueo de red.
+    consentimiento.rechazar(page, espera_ms=800)
+
+    campo = page.locator(selector).first
+    try:
+        # focus() en vez de click(). Es la diferencia entre los seis intentos
+        # anteriores y este: click() comprueba que el elemento este despejado
+        # y Volotea reinyecta su panel de consentimiento —servido desde su
+        # propio dominio, asi que el bloqueo por URL no lo caza— encima del
+        # buscador. Playwright reintentaba el click hasta agotar el timeout.
+        # focus() no hace esa comprobacion: pone el cursor en el campo aunque
+        # haya algo por delante, y a partir de ahi se escribe con el teclado,
+        # que tampoco depende de donde este el raton.
+        campo.focus(timeout=8000)
+        page.wait_for_timeout(800)
+        campo.fill("", timeout=4000)
+        page.keyboard.type(ciudad, delay=90)
+        page.wait_for_timeout(2500)
+    except Exception as exc:  # noqa: BLE001
+        depuracion.volcar(page, f"volotea-escritura-{ciudad.lower()}")
+        return False, f"No se pudo escribir {ciudad} en {selector} ({exc})"
+
+    # Que el texto haya entrado se comprueba aqui, antes de buscar sugerencias:
+    # si el campo esta vacio, el problema es la escritura y no la lista.
+    try:
+        escrito = (campo.input_value(timeout=3000) or "").strip()
+    except Exception:  # noqa: BLE001
+        escrito = ""
+    if not escrito:
+        depuracion.volcar(page, f"volotea-vacio-{ciudad.lower()}")
+        return False, f"{selector} se quedo vacio tras teclear {ciudad}"
+    log.info("Volotea: tecleado %r en %s", escrito, selector)
+
+    # Elegir la sugerencia. Se prueban tres vias porque la portada tiene
+    # decenas de elementos ocultos (el megamenu de ayuda) que tambien dicen
+    # "Bilbao": en el run #63 `get_by_text(ciudad).first` resolvia a uno de
+    # ellos y el click se pasaba 10 s esperando a que fuera visible.
+    if not _pulsar_sugerencia(page, ciudad) and not _teclear_sugerencia(page):
+        depuracion.volcar(page, f"volotea-sugerencia-{ciudad.lower()}",
+                          pistas=(ciudad.lower(),))
+        return False, f"No aparecio {ciudad} en la lista de {selector}"
+
+    page.wait_for_timeout(2000)
+
+    # La comprobacion que de verdad importa: que el campo se haya quedado con
+    # la ciudad. Sin esto, un click en el sitio equivocado se daba por bueno y
+    # el fallo aparecia mucho despues, al no haber calendario.
+    try:
+        valor = (campo.input_value(timeout=4000) or "").strip()
+    except Exception:  # noqa: BLE001
+        valor = ""
+    if ciudad.lower() not in valor.lower():
+        depuracion.volcar(page, f"volotea-verificacion-{ciudad.lower()}",
+                          pistas=(ciudad.lower(),))
+        return False, (f"{selector} no se quedo con {ciudad}: "
+                       f"contiene {valor!r}")
+
+    log.info("Volotea: %s = %r", selector, valor)
+    return True, f"{ciudad} seleccionado"
+
+
+def _destino_ya_puesto(page: Page) -> bool:
+    """True si el buscador ya muestra Tenerife como destino."""
+    try:
+        return "tenerife" in page.inner_text("body", timeout=5000).lower()
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _abrir_buscador(page: Page) -> tuple[bool, str]:
+    """Deja el buscador con origen Bilbao y destino Tenerife Sur.
+
+    Devuelve (ok, motivo). El motivo viaja hasta el panel: en el run #58 este
+    paso fallaba en silencio —habia un `except` que decia "el destino ya
+    estaba puesto o el panel no salio" sin comprobar cual de las dos cosas
+    era— y el sintoma aparecia despues, al no encontrar calendario. Un except
+    que se inventa la explicacion es peor que no capturarlo.
+    """
+    # Antes de cargar nada: que no llegue el gestor de consentimiento.
+    consentimiento.bloquear(page)
+
+    try:
+        page.goto(INICIO, wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
+    except Exception as exc:  # noqa: BLE001
+        return False, f"No cargo la web de Volotea ({exc})"
+
+    page.wait_for_timeout(4000)
+
+    senal = depuracion.bloqueada(page)
+    if senal:
+        depuracion.volcar(page, "volotea-bloqueo")
+        return False, f"Volotea bloquea la IP del runner (senal: {senal!r})"
+
+    # Lo primero, quitar el banner de en medio: en el run #62 el panel de
+    # Usercentrics interceptaba todos los clicks y Playwright reintentaba
+    # diecinueve veces contra un aside invisible.
+    log.info("Volotea: consentimiento -> %s", consentimiento.rechazar(page))
+    page.wait_for_timeout(2000)
+
+    for campo, ciudad in ((SEL_ORIGEN, cfg.ORIGEN_NOMBRE),
+                          (SEL_DESTINO, DESTINO_NOMBRE)):
+        ok, motivo = _elegir_aeropuerto(page, campo, ciudad)
+        if not ok:
+            if campo == SEL_DESTINO and _destino_ya_puesto(page):
+                log.info("Volotea: el destino ya venia puesto en el buscador")
+                return True, "destino ya puesto"
+            return False, motivo
+    return True, "origen y destino seleccionados"
+
+
+def _abrir_calendario(page: Page) -> bool:
+    """Despliega el calendario de fechas y espera a que pinte los dias."""
+    if page.locator(SEL_DIA).count():
+        return True
+    for etiqueta in ("Ida", "Fecha de ida", "Salida", "Fecha"):
         try:
-            txt = dias.nth(i).inner_text(timeout=2500)
+            page.get_by_text(etiqueta, exact=True).first.click(timeout=6000)
         except Exception:  # noqa: BLE001
             continue
-        m_dia = re.match(r"\s*(\d{1,2})\b", txt)
-        m_precio = PRECIO_CELDA.search(txt)
-        if not (m_dia and m_precio):
+        try:
+            # Esperar al selector, no dormir un rato y cruzar los dedos: el
+            # calendario tarda lo que tarde segun lo cargado que este el
+            # runner, y 2,5 s fijos se quedaban cortos.
+            page.wait_for_selector(SEL_DIA, timeout=15_000)
+            return True
+        except Exception:  # noqa: BLE001
             continue
-        precio = _a_float(m_precio.group(1))
+    return bool(page.locator(SEL_DIA).count())
+
+
+def leer_calendario(page: Page) -> list[Tramo]:
+    """Todos los días con precio que haya pintados, leyendo `data-date`.
+
+    No navega por meses: Volotea ya trae más de un año de calendario en el DOM.
+    """
+    tramos: list[Tramo] = []
+    dias = page.locator(SEL_DIA)
+    total = dias.count()
+    for i in range(total):
+        dia = dias.nth(i)
+        try:
+            iso = (dia.get_attribute("data-date") or "")[:10]
+            if not iso:
+                continue
+            precio_txt = dia.locator(SEL_PRECIO)
+            if not precio_txt.count():
+                continue           # día sin vuelo
+            crudo = precio_txt.first.inner_text(timeout=2000)
+        except Exception:  # noqa: BLE001
+            continue
+        m = PRECIO_CELDA.search(crudo)
+        if not m:
+            continue
+        precio = _a_float(m.group(1))
         if precio is None:
             continue
-        numero = int(m_dia.group(1))
         try:
-            dia = mes.replace(day=numero)
+            date.fromisoformat(iso)
         except ValueError:
             continue
-        tramos.append(Tramo(fecha=dia.isoformat(), precio=precio))
-    # El calendario pinta dos meses; nos quedamos con los del mes pedido.
+        tramos.append(Tramo(fecha=iso, precio=precio))
+    log.info("Volotea: %d celdas de calendario, %d con precio", total, len(tramos))
     return tramos
 
 
@@ -180,6 +355,7 @@ def _combinar(idas: list[Tramo], vueltas: list[Tramo]) -> list[dict]:
             ofertas.append({
                 "aerolinea": AEROLINEA,
                 "destino": DESTINO,
+                "destino_nombre": DESTINO_NOMBRE,
                 "ida": ida.fecha,
                 "vuelta": vuelta.fecha,
                 "noches": noches,
@@ -187,50 +363,50 @@ def _combinar(idas: list[Tramo], vueltas: list[Tramo]) -> list[dict]:
                 "precio_total": round(por_persona * cfg.PASAJEROS, 2),
                 "escalas": "directo",
                 "equipaje": "solo bolso de mano",
-                "fuente": "web de Volotea",
+                "fuente": FUENTE,
             })
-    ofertas.sort(key=lambda o: o["precio"])
+    ofertas.sort(key=lambda o: o["precio_total"])
     return ofertas
 
 
 def buscar(page: Page) -> tuple[list[dict], str]:
     """Devuelve (ofertas, detalle). Lista vacía si no se pudo leer."""
-    if not _abrir_buscador(page):
-        return [], "No se pudo abrir el buscador de Volotea"
+    # Las pistas son los rotulos del buscador: con ellos el log dice que
+    # elemento hay que clicar de verdad, sin bajarse el HTML del artefacto.
+    PISTAS = ("origen", "destino", "aeropuerto", "bilbao", "tenerife",
+              "ida", "vuelta", "pasajero", "buscar")
 
-    mes = cfg.NOCHE_OBLIGATORIA.replace(day=1)
-    if not _avanzar_hasta(page, mes):
-        return [], f"No se alcanzó {MESES[mes.month - 1]} {mes.year} en Volotea"
+    ok, motivo = _abrir_buscador(page)
+    if not ok:
+        depuracion.volcar(page, "volotea-buscador", pistas=PISTAS)
+        return [], motivo
 
-    idas = _leer_mes(page, mes)
-    if not idas:
-        return [], "Volotea no muestra vuelos para ese mes"
-    log.info("Volotea: %d días con vuelo de ida", len(idas))
+    if not _abrir_calendario(page):
+        depuracion.volcar(page, "volotea-calendario", pistas=PISTAS)
+        return [], f"No se pudo abrir el calendario de Volotea ({motivo})"
 
-    # Al pinchar una ida, el calendario pasa a mostrar precios de vuelta.
-    referencia = min(idas, key=lambda t: abs(
-        (date.fromisoformat(t.fecha) - cfg.NOCHE_OBLIGATORIA).days))
-    try:
-        page.get_by_text(str(date.fromisoformat(referencia.fecha).day),
-                         exact=True).first.click(timeout=6000)
-        page.wait_for_timeout(3000)
-    except Exception as exc:  # noqa: BLE001
-        log.warning("Volotea: no se pudo abrir el calendario de vuelta (%s)", exc)
-        return [], "No se pudieron leer las vueltas de Volotea"
+    tramos = leer_calendario(page)
+    if not tramos:
+        return [], "El calendario de Volotea no trae precios"
 
-    vueltas = _leer_mes(page, mes)
-    siguiente = (mes + timedelta(days=32)).replace(day=1)
-    vueltas += _leer_mes(page, siguiente)
+    mes = cfg.NOCHE_OBLIGATORIA.strftime("%Y-%m")
+    del_mes = [t for t in tramos if t.fecha.startswith(mes)]
+    if not del_mes:
+        return [], (f"Volotea todavía no vende {mes}: su calendario llega hasta "
+                    f"{max(t.fecha for t in tramos)}")
 
-    ofertas = _combinar(idas, vueltas)
+    # El mismo calendario sirve de ida y de vuelta: Volotea pinta el precio por
+    # trayecto de cada día, no un precio de ida y vuelta. Antes se pinchaba un
+    # día para "abrir las vueltas", un paso frágil que no aportaba nada.
+    ofertas = _combinar(del_mes, del_mes)
     if not ofertas:
-        return [], "Volotea vuela ese mes, pero ninguna combinación cubre la noche del 8"
+        return [], (f"Volotea vuela en {mes}, pero ninguna combinación cubre "
+                    f"la noche del {cfg.NOCHE_OBLIGATORIA.day}")
 
     mejor = ofertas[0]
     detalle = (
-        f"Volotea directo desde {mejor['precio']:.0f} €/persona "
-        f"({mejor['precio_total']:.0f} € los {cfg.PASAJEROS}), "
-        f"{mejor['ida']} → {mejor['vuelta']} ({mejor['noches']} noches). "
-        f"Solo bolso de mano."
+        f"Volotea directo desde {mejor['precio_total']:.0f} € los {cfg.PASAJEROS} "
+        f"({mejor['precio']:.0f} €/persona), {mejor['ida']} → {mejor['vuelta']} "
+        f"({mejor['noches']} noches). Solo bolso de mano."
     )
     return ofertas, detalle

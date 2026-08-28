@@ -64,20 +64,57 @@ MAX_VENTANAS_VUELOS = 3
 # por Alain el 15-ago-2026). Ryanair, Binter e Iberia se han quitado: no
 # operan la ruta, y tenerlas en la lista solo servia para buscar en balde.
 #
-# Cobertura de cada una:
-#   Volotea    -> modulo propio (volotea.py). Vuela a Tenerife SUR, a 45 min
-#                 del hotel, y solo miercoles y domingos.
-#   Vueling    -> via Google Flights, que si la indexa.
-#   Air Europa -> via Google Flights, que si la indexa.
+# Estado de cada una, comprobado a mano en sus webs el 27-ago-2026:
 #
-# OJO: Google Flights falla desde los runners de GitHub Actions porque Google
-# bloquea las IPs de centro de datos. Mientras eso siga asi, Vueling y Air
-# Europa pueden quedarse sin cotizar aunque tengan billetes a la venta.
+#   Volotea    -> Tenerife SUR (TFS), a 45 min del hotel. Solo miercoles y
+#                 domingos. AGOSTO 2027 YA A LA VENTA. Modulo: volotea.py
+#   Air Europa -> Tenerife NORTE (TFN), a ~1 h 15 del hotel. Directo martes,
+#                 jueves y sabado (19:35->21:45 la ida, 14:35->18:45 la
+#                 vuelta). AGOSTO 2027 YA A LA VENTA. Modulo: aireuropa.py
+#   Vueling    -> Tenerife NORTE. TODAVIA NO VENDE agosto 2027: su calendario
+#                 se corta el 13-jun-2027. No hay modulo porque no hay nada
+#                 que leer; cuando abra la venta entrara por SerpApi.
+#
+# El dato que cambia el plan del viaje: BIO-TFS son 2 vuelos por semana y
+# BIO-TFN son 16. Si se acepta aterrizar en el Norte, la fecha de entrada deja
+# de estar atada a los miercoles y domingos de Volotea.
+#
+# Por que ya no se raspa Google Flights: desde GitHub Actions NUNCA funciono
+# (Google bloquea las IPs de centro de datos) y las 52 pasadas terminaron en
+# "no se pudo leer". Se cambio a SerpApi... que tampoco sirve todavia, porque
+# Google no cotiza a mas de ~330 dias vista. Agosto de 2027 entrara en su
+# rango hacia el 20-sep-2026; hasta entonces mandan las webs de las
+# aerolineas. Ver HORIZONTE_DIAS en vuelos_serp.py.
 AEROLINEAS = [
     ("Volotea", "https://www.volotea.com/es/"),
     ("Vueling", "https://www.vueling.com/es"),
     ("Air Europa", "https://www.aireuropa.com/es/es"),
 ]
+
+# Lectores de aerolineas dormidos hasta septiembre de 2026
+# ---------------------------------------------------------------------
+# Los dos raspan la web de la aerolinea y ninguno funciona desde un runner de
+# GitHub Actions. Se dejan apagados para no gastar medio minuto por pasada en
+# fallar, y sobre todo para que el panel no enseñe errores de algo que ya
+# sabemos que no puede ir:
+#
+#   Air Europa  su CDN bloquea las IPs de centro de datos. Lo que llega no es
+#               su buscador sino "Page Unavailable" con Reference ID y Client
+#               IP. Ningun selector arregla eso. Ver run #59.
+#   Volotea     su web si carga, pero el panel de consentimiento se reinyecta
+#               por encima del buscador y no se ha conseguido rellenar los
+#               campos. Ver runs #62 a #67 y la cabecera de volotea.py.
+#
+# Los dos modulos se conservan enteros, con sus pruebas y con la causa de cada
+# fallo documentada: sirven ejecutando el rastreo en un portatil, desde una IP
+# domestica y con el banner ya respondido.
+#
+# CUANDO VOLVER A ENCENDERLOS: a partir del ~20-sep-2026, Google Vuelos ya
+# alcanza agosto de 2027 y SerpApi cotiza las tres aerolineas por API, sin
+# navegador. Si entonces SerpApi trae los precios, esto puede quedarse
+# apagado para siempre. Si decepciona, aqui esta el trabajo hecho.
+LEER_VOLOTEA = False
+LEER_AIREUROPA = False
 
 # --------------------------------------------------------------- otros
 TIMEOUT_MS = 45_000

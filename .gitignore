@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 .venv/
 *.png
+# Volcados de depuracion de los lectores de aerolineas
+depuracion-*
