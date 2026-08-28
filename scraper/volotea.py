@@ -124,6 +124,40 @@ def _a_float(crudo: str) -> float | None:
     return valor if PRECIO_MIN <= valor <= PRECIO_MAX else None
 
 
+def _pulsar_sugerencia(page: Page, ciudad: str) -> bool:
+    """Clica la primera sugerencia VISIBLE que diga la ciudad."""
+    try:
+        opciones = page.get_by_text(ciudad, exact=True)
+        total = opciones.count()
+    except Exception:  # noqa: BLE001
+        return False
+    for i in range(min(total, 12)):
+        opcion = opciones.nth(i)
+        try:
+            if not opcion.is_visible(timeout=1200):
+                continue
+            opcion.click(timeout=5000)
+            return True
+        except Exception:  # noqa: BLE001
+            continue
+    log.info("Volotea: %d elementos dicen %r pero ninguno era clicable",
+             total, ciudad)
+    return False
+
+
+def _teclear_sugerencia(page: Page) -> bool:
+    """Plan B: bajar con el teclado y aceptar, como en cualquier autocompletar."""
+    try:
+        page.keyboard.press("ArrowDown")
+        page.wait_for_timeout(600)
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(1200)
+        log.info("Volotea: sugerencia aceptada con el teclado")
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _elegir_aeropuerto(page: Page, selector: str, ciudad: str) -> tuple[bool, str]:
     """Rellena uno de los dos campos de aeropuerto y elige la ciudad.
 
@@ -136,22 +170,44 @@ def _elegir_aeropuerto(page: Page, selector: str, ciudad: str) -> tuple[bool, st
     except Exception as exc:  # noqa: BLE001
         return False, f"No aparecio el campo {selector} ({exc})"
 
+    campo = page.locator(selector).first
     try:
-        campo = page.locator(selector).first
         campo.click(timeout=8000)
         page.wait_for_timeout(1500)
-        # Escribir filtra la lista de aeropuertos y deja una sola tarjeta,
-        # que es mas fiable que buscar el nombre entre las decenas que
-        # muestra el panel sin filtrar.
+        # Escribir filtra la lista de aeropuertos, que es mas fiable que
+        # buscar el nombre entre las decenas de tarjetas sin filtrar.
         campo.fill("", timeout=4000)
         campo.type(ciudad, delay=90)
         page.wait_for_timeout(2500)
-        page.get_by_text(ciudad, exact=True).first.click(timeout=10_000)
-        page.wait_for_timeout(2500)
-        log.info("Volotea: %s = %s", selector, ciudad)
-        return True, f"{ciudad} seleccionado"
     except Exception as exc:  # noqa: BLE001
-        return False, f"No se pudo poner {ciudad} en {selector} ({exc})"
+        return False, f"No se pudo escribir {ciudad} en {selector} ({exc})"
+
+    # Elegir la sugerencia. Se prueban tres vias porque la portada tiene
+    # decenas de elementos ocultos (el megamenu de ayuda) que tambien dicen
+    # "Bilbao": en el run #63 `get_by_text(ciudad).first` resolvia a uno de
+    # ellos y el click se pasaba 10 s esperando a que fuera visible.
+    if not _pulsar_sugerencia(page, ciudad) and not _teclear_sugerencia(page):
+        depuracion.volcar(page, f"volotea-sugerencia-{ciudad.lower()}",
+                          pistas=(ciudad.lower(),))
+        return False, f"No aparecio {ciudad} en la lista de {selector}"
+
+    page.wait_for_timeout(2000)
+
+    # La comprobacion que de verdad importa: que el campo se haya quedado con
+    # la ciudad. Sin esto, un click en el sitio equivocado se daba por bueno y
+    # el fallo aparecia mucho despues, al no haber calendario.
+    try:
+        valor = (campo.input_value(timeout=4000) or "").strip()
+    except Exception:  # noqa: BLE001
+        valor = ""
+    if ciudad.lower() not in valor.lower():
+        depuracion.volcar(page, f"volotea-verificacion-{ciudad.lower()}",
+                          pistas=(ciudad.lower(),))
+        return False, (f"{selector} no se quedo con {ciudad}: "
+                       f"contiene {valor!r}")
+
+    log.info("Volotea: %s = %r", selector, valor)
+    return True, f"{ciudad} seleccionado"
 
 
 def _destino_ya_puesto(page: Page) -> bool:
