@@ -78,7 +78,21 @@ DESTINO = "TFS"
 DESTINO_NOMBRE = "Tenerife Sur"
 FUENTE = "web de Volotea"
 
-# Los selectores que de verdad existen en su calendario.
+# Los selectores que de verdad existen en su buscador y su calendario,
+# confirmados leyendo la estructura de la pagina desde el propio runner
+# (run #60). Los tres campos del buscador tienen id estable:
+#
+#   input #input-text_sf-origin        ph "Seleccionar aeropuerto"
+#   input #input-text_sf-destination   ph "Seleccionar aeropuerto"
+#   input #input-text_sf-passenger     ph "PASAJEROS"
+#
+# Origen y destino comparten placeholder, y ahi estaba el fallo de las
+# versiones anteriores: `get_by_text("Seleccionar aeropuerto").first` abria
+# el panel del ORIGEN y despues buscaba "Tenerife Sur" en una lista de
+# aeropuertos de salida. Nunca aparecia, y el timeout se leia como "la web ha
+# cambiado" cuando en realidad estabamos clicando el campo equivocado.
+SEL_ORIGEN = "#input-text_sf-origin"
+SEL_DESTINO = "#input-text_sf-destination"
 SEL_DIA = "button[volotea-calendar-day][data-date]"
 SEL_PRECIO = ".c-calendar-day__price"
 
@@ -120,6 +134,36 @@ def _rechazar_cookies(page: Page) -> None:
             continue
 
 
+def _elegir_aeropuerto(page: Page, selector: str, ciudad: str) -> tuple[bool, str]:
+    """Rellena uno de los dos campos de aeropuerto y elige la ciudad.
+
+    Se ataca por id, no por placeholder: los dos campos comparten el texto
+    "Seleccionar aeropuerto" y por eso la version anterior acababa siempre en
+    el de origen.
+    """
+    try:
+        page.wait_for_selector(selector, timeout=30_000, state="visible")
+    except Exception as exc:  # noqa: BLE001
+        return False, f"No aparecio el campo {selector} ({exc})"
+
+    try:
+        campo = page.locator(selector).first
+        campo.click(timeout=8000)
+        page.wait_for_timeout(1500)
+        # Escribir filtra la lista de aeropuertos y deja una sola tarjeta,
+        # que es mas fiable que buscar el nombre entre las decenas que
+        # muestra el panel sin filtrar.
+        campo.fill("", timeout=4000)
+        campo.type(ciudad, delay=90)
+        page.wait_for_timeout(2500)
+        page.get_by_text(ciudad, exact=True).first.click(timeout=10_000)
+        page.wait_for_timeout(2500)
+        log.info("Volotea: %s = %s", selector, ciudad)
+        return True, f"{ciudad} seleccionado"
+    except Exception as exc:  # noqa: BLE001
+        return False, f"No se pudo poner {ciudad} en {selector} ({exc})"
+
+
 def _destino_ya_puesto(page: Page) -> bool:
     """True si el buscador ya muestra Tenerife como destino."""
     try:
@@ -152,18 +196,15 @@ def _abrir_buscador(page: Page) -> tuple[bool, str]:
     _rechazar_cookies(page)
     page.wait_for_timeout(2000)
 
-    # El destino abre un panel con tarjetas por aeropuerto.
-    try:
-        page.get_by_text("Seleccionar aeropuerto").first.click(timeout=10_000)
-        page.wait_for_timeout(2500)
-        page.get_by_text(DESTINO_NOMBRE, exact=True).first.click(timeout=10_000)
-        page.wait_for_timeout(4000)
-        return True, "destino seleccionado"
-    except Exception as exc:  # noqa: BLE001
-        if _destino_ya_puesto(page):
-            log.info("Volotea: el destino ya venia puesto en el buscador")
-            return True, "destino ya puesto"
-        return False, f"No se pudo poner Tenerife Sur como destino ({exc})"
+    for campo, ciudad in ((SEL_ORIGEN, cfg.ORIGEN_NOMBRE),
+                          (SEL_DESTINO, DESTINO_NOMBRE)):
+        ok, motivo = _elegir_aeropuerto(page, campo, ciudad)
+        if not ok:
+            if campo == SEL_DESTINO and _destino_ya_puesto(page):
+                log.info("Volotea: el destino ya venia puesto en el buscador")
+                return True, "destino ya puesto"
+            return False, motivo
+    return True, "origen y destino seleccionados"
 
 
 def _abrir_calendario(page: Page) -> bool:
