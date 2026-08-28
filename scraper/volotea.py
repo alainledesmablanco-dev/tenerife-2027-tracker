@@ -170,6 +170,9 @@ def _elegir_aeropuerto(page: Page, selector: str, ciudad: str) -> tuple[bool, st
     except Exception as exc:  # noqa: BLE001
         return False, f"No aparecio el campo {selector} ({exc})"
 
+    # Por si acaso reaparece pese al bloqueo de red.
+    consentimiento.rechazar(page, espera_ms=800)
+
     campo = page.locator(selector).first
     try:
         campo.click(timeout=8000)
@@ -227,6 +230,9 @@ def _abrir_buscador(page: Page) -> tuple[bool, str]:
     era— y el sintoma aparecia despues, al no encontrar calendario. Un except
     que se inventa la explicacion es peor que no capturarlo.
     """
+    # Antes de cargar nada: que no llegue el gestor de consentimiento.
+    consentimiento.bloquear(page)
+
     try:
         page.goto(INICIO, wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
     except Exception as exc:  # noqa: BLE001

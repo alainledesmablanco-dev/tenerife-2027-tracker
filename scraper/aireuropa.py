@@ -240,6 +240,7 @@ def _escribir_aeropuerto(page: Page, selector: str, texto: str, opcion: str) -> 
 def _rellenar(page: Page, ida: date, vuelta: date) -> tuple[bool, str]:
     """Origen, destino, fechas y pasajeros. Devuelve (ok, motivo)."""
     try:
+        consentimiento.bloquear(page)
         page.goto(INICIO, wait_until="domcontentloaded", timeout=cfg.TIMEOUT_MS)
         page.wait_for_timeout(6000)
 

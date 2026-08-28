@@ -68,6 +68,36 @@ TEXTOS_RECHAZAR = (
     "Deny", "Reject all",
 )
 
+# Dominios desde los que se sirven estos gestores. Bloquearlos en la red es
+# mas fiable que quitar el panel del DOM: en el run #64 se retiraba al cargar
+# y once segundos despues el script lo habia vuelto a inyectar, asi que el
+# click en el buscador seguia interceptado. Si el script no llega, no hay
+# panel que quitar ni que reaparezca.
+GUIONES_CMP = (
+    "**/*usercentrics*",
+    "**/*onetrust*",
+    "**/*cookielaw*",
+    "**/*didomi*",
+    "**/*cookiebot*",
+    "**/*trustarc*",
+)
+
+
+def bloquear(page: "Page") -> None:
+    """Impide que se cargue el gestor de consentimiento. Nunca lanza.
+
+    No se cargan sus scripts, asi que tampoco se cargan las cookies de
+    seguimiento que gestionan: bloquear equivale a rechazar, y ademas no
+    depende de encontrar un boton dentro de un shadow DOM.
+    """
+    for patron in GUIONES_CMP:
+        try:
+            page.route(patron, lambda ruta: ruta.abort())
+        except Exception as exc:  # noqa: BLE001
+            log.info("Consentimiento: no se pudo bloquear %s (%s)", patron, exc)
+    log.info("Consentimiento: bloqueados %d patrones de CMP", len(GUIONES_CMP))
+
+
 JS_RETIRAR = """(paneles) => {
   let quitados = 0;
   for (const sel of paneles) {
