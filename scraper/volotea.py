@@ -68,6 +68,7 @@ if TYPE_CHECKING:   # Playwright solo hace falta para navegar. Dejarlo fuera
     from playwright.sync_api import Page
 
 from . import config as cfg
+from . import consentimiento
 from . import depuracion
 
 log = logging.getLogger(__name__)
@@ -121,17 +122,6 @@ def _a_float(crudo: str) -> float | None:
     except ValueError:
         return None
     return valor if PRECIO_MIN <= valor <= PRECIO_MAX else None
-
-
-def _rechazar_cookies(page: Page) -> None:
-    for etiqueta in ("Aceptar solo las esenciales", "Rechazar", "Reject", "Solo esenciales"):
-        try:
-            boton = page.get_by_role("button", name=etiqueta)
-            if boton.count():
-                boton.first.click(timeout=4000)
-                return
-        except Exception:  # noqa: BLE001 - el banner es opcional
-            continue
 
 
 def _elegir_aeropuerto(page: Page, selector: str, ciudad: str) -> tuple[bool, str]:
@@ -193,7 +183,10 @@ def _abrir_buscador(page: Page) -> tuple[bool, str]:
         depuracion.volcar(page, "volotea-bloqueo")
         return False, f"Volotea bloquea la IP del runner (senal: {senal!r})"
 
-    _rechazar_cookies(page)
+    # Lo primero, quitar el banner de en medio: en el run #62 el panel de
+    # Usercentrics interceptaba todos los clicks y Playwright reintentaba
+    # diecinueve veces contra un aside invisible.
+    log.info("Volotea: consentimiento -> %s", consentimiento.rechazar(page))
     page.wait_for_timeout(2000)
 
     for campo, ciudad in ((SEL_ORIGEN, cfg.ORIGEN_NOMBRE),

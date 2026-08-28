@@ -60,6 +60,7 @@ if TYPE_CHECKING:   # Playwright solo hace falta para navegar. Dejarlo fuera
     from playwright.sync_api import Page
 
 from . import config as cfg
+from . import consentimiento
 from . import depuracion
 
 log = logging.getLogger(__name__)
@@ -210,47 +211,6 @@ def combinar(idas: dict[str, float], vueltas: dict[str, float],
 
 # --------------------------------------------------------------- navegación
 
-# El banner de consentimiento es lo que separa un navegador de escritorio con
-# cookies de una visita anterior —donde se sacaron estos selectores— de un
-# runner en frio, donde tapa el buscador entero. Se prueban primero los ids
-# conocidos de OneTrust y despues los textos, y tambien dentro de los iframes,
-# que es donde algunas implantaciones lo meten.
-SELECTORES_COOKIES = (
-    "#onetrust-reject-all-handler",
-    "#onetrust-accept-btn-handler",
-    "button[id*='reject' i]",
-    "button[class*='reject' i]",
-)
-TEXTOS_COOKIES = ("Rechazar todas", "Rechazar", "Solo las necesarias",
-                  "Aceptar solo las esenciales", "Reject all", "Aceptar todas")
-
-
-def _rechazar_cookies(page: Page) -> bool:
-    """True si se cerro algun banner. Nunca lanza."""
-    for contexto in (page, *page.frames):
-        for sel in SELECTORES_COOKIES:
-            try:
-                nodo = contexto.locator(sel)
-                if nodo.count() and nodo.first.is_visible(timeout=1500):
-                    nodo.first.click(timeout=4000)
-                    page.wait_for_timeout(1500)
-                    log.info("Air Europa: banner de cookies cerrado con %s", sel)
-                    return True
-            except Exception:  # noqa: BLE001
-                continue
-    for etiqueta in TEXTOS_COOKIES:
-        try:
-            boton = page.get_by_role("button", name=etiqueta)
-            if boton.count():
-                boton.first.click(timeout=4000)
-                page.wait_for_timeout(1500)
-                log.info("Air Europa: banner de cookies cerrado con %r", etiqueta)
-                return True
-        except Exception:  # noqa: BLE001
-            continue
-    return False
-
-
 def _cerrar_avisos(page: Page) -> None:
     """El modal de Air Europa SUMA tapa el buscador si no se cierra."""
     for nombre in ("Cerrar", "Close", "close"):
@@ -296,8 +256,7 @@ def _rellenar(page: Page, ida: date, vuelta: date) -> tuple[bool, str]:
                 "selectores y no se arregla desde GitHub Actions"
             )
 
-        if not _rechazar_cookies(page):
-            log.info("Air Europa: no aparecio banner de cookies (o no se reconocio)")
+        log.info("Air Europa: consentimiento -> %s", consentimiento.rechazar(page))
         _cerrar_avisos(page)
 
         _escribir_aeropuerto(page, "#flight-searcher-departure", cfg.ORIGEN_NOMBRE, cfg.ORIGEN)
