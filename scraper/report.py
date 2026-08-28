@@ -10,6 +10,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from . import config as cfg
+
 PLANTILLA = """<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -129,16 +131,28 @@ document.getElementById("kBestNote").textContent = mejor
 document.getElementById("kLast").textContent = (DATA.ultima_comprobacion || "—").slice(5);
 document.getElementById("kRunsNote").textContent =
   (DATA.registros || []).length + " comprobaciones · 2 al día";
-document.getElementById("kFly").textContent = DATA.vuelos_abiertos ? "Abiertos" : "Cerrados";
+// Tres estados, no dos. "Cerrados" y "no hemos podido leerlos" son cosas
+// distintas y el panel las confundia: decia que no habia venta cuando la hay.
+const cotizados = (DATA.ofertas_vuelos || []).length > 0;
+const ventaAbierta = !!DATA.venta_vuelos_abierta;
+document.getElementById("kFly").textContent =
+  cotizados ? "Abiertos" : (ventaAbierta ? "Sin cotizar" : "Cerrados");
 const ultimo = (DATA.registros || []).slice(-1)[0] || {};
 document.getElementById("kFlyNote").textContent =
   DATA.detalle_vuelos || ultimo.detalle_vuelos || "";
 
 const b = document.getElementById("banner");
-if (DATA.vuelos_abiertos) {
+if (cotizados) {
   b.className = "banner ok";
   b.innerHTML = "<b>Los vuelos ya están a la venta.</b> Compara el paquete " +
     "contra vuelo y hotel por separado antes de reservar.";
+} else if (ventaAbierta) {
+  b.className = "banner ok";
+  b.innerHTML = "<b>Los vuelos ya están a la venta, pero el rastreo todavía no " +
+    "los cotiza solo.</b> " + (DATA.venta_vuelos_nota || "") +
+    (DATA.venta_vuelos_comprobada
+      ? " Comprobado a mano el " + DATA.venta_vuelos_comprobada + "."
+      : "");
 } else {
   b.innerHTML = "<b>Los vuelos todavía no están a la venta.</b> Las aerolíneas " +
     "abren 10–12 meses antes. El hotel sí se puede reservar con cancelación gratuita.";
@@ -171,7 +185,9 @@ combis.forEach((c, i) => {
 if (!cb.rows.length) {
   vacio(cb, 8, DATA.vuelos_abiertos
     ? "Hay vuelos, pero para fechas distintas a las mejores del hotel."
-    : "Cuando las aerolíneas abran la venta se podrá sumar el viaje entero.");
+    : (ventaAbierta
+        ? "Hay vuelos a la venta, pero el rastreo aún no los cotiza: súmalos a mano."
+        : "Cuando las aerolíneas abran la venta se podrá sumar el viaje entero."));
 }
 document.getElementById("cNota").textContent = combis.length
   ? "Hotel para " + pax + " personas con Todo Incluido, más " + pax +
@@ -233,9 +249,14 @@ if (!filasOta) {
       " comprobación: " + DATA.otas_comprobado + ".";
   }
 } else {
+  const estimados = (DATA.ofertas_otas || []).some(o => o.total_estimado);
   notaOtas = "Consultado el " + (DATA.otas_actualizado || DATA.otas_comprobado) +
     " · una vez al día. Precios orientativos de Google Hotels; confírmalos en" +
-    " la web correspondiente antes de reservar.";
+    " la web correspondiente antes de reservar." +
+    (estimados
+      ? " Google devolvió el mismo importe como precio por noche y como total;" +
+        " el total que se muestra es el por noche multiplicado por las noches."
+      : "");
 }
 document.getElementById("oNota").textContent = notaOtas;
 
@@ -311,6 +332,9 @@ def generar(datos: dict, destino: Path) -> None:
         "ofertas_vuelos": datos.get("ofertas_vuelos", []),
         "vuelos_actualizado": datos.get("vuelos_actualizado"),
         "detalle_vuelos": datos.get("detalle_vuelos"),
+        "venta_vuelos_abierta": cfg.VENTA_VUELOS_ABIERTA,
+        "venta_vuelos_nota": cfg.VENTA_VUELOS_NOTA,
+        "venta_vuelos_comprobada": cfg.VENTA_VUELOS_COMPROBADA.strftime("%d-%m-%Y"),
         "combinaciones": datos.get("combinaciones", []),
         "pasajeros": datos.get("pasajeros", 3),
         "registros": [

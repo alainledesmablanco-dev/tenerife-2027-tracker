@@ -139,6 +139,29 @@ def _pedir(clave: str, entrada: date, salida: date, **extra) -> dict | None:
     return datos
 
 
+def _coherentes(por_noche: float | None, total: float | None,
+                noches: int) -> tuple[float | None, float | None, bool]:
+    """Corrige el caso en que Google da el mismo numero como noche y total.
+
+    Pasaba de verdad: el panel enseño meses "618 €/noche · 618 € total" para
+    una estancia de 7 noches, y despues "328 € y 328 €". Un total de siete
+    noches no puede coincidir con el precio de una, asi que uno de los dos
+    campos viene mal.
+
+    Cual? El bueno es el precio por noche: 328 € encaja con lo que cobra este
+    hotel (270-320 €/noche) y como total de una semana seria absurdo. Asi que
+    se conserva el por_noche y se recalcula el total, marcando la fila como
+    estimada para que el panel no lo presente como dato de Google.
+    """
+    if not noches or noches <= 1 or por_noche is None or total is None:
+        return por_noche, total, False
+    # Un total creible tiene que acercarse a por_noche * noches. Si se queda
+    # por debajo de dos noches, no es un total.
+    if total < por_noche * 2:
+        return por_noche, round(por_noche * noches, 2), True
+    return por_noche, total, False
+
+
 def _fuentes_de(bloques: list[dict], noches: int) -> list[dict]:
     """Convierte la lista `prices` de Google en filas web/precio."""
     fuentes = []
@@ -149,12 +172,14 @@ def _fuentes_de(bloques: list[dict], noches: int) -> list[dict]:
             tt = round(pn * noches, 2)
         if pn is None and tt is not None and noches:
             pn = round(tt / noches, 2)
+        pn, tt, estimado = _coherentes(pn, tt, noches)
         if pn is None and tt is None:
             continue
         fuentes.append({
             "web": oferta.get("source") or "?",
             "por_noche": pn,
             "total": tt,
+            "total_estimado": estimado,
         })
     return fuentes
 
@@ -218,6 +243,11 @@ def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | N
         total = round(por_noche * noches, 2)
     if por_noche is None and total is not None:
         por_noche = round(total / noches, 2) if noches else None
+    por_noche, total, total_estimado = _coherentes(por_noche, total, noches)
+    if total_estimado:
+        log.info("OTAs %s -> %s: Google daba el mismo importe como noche y "
+                 "como total; se recalcula el total (%.0f x %d noches)",
+                 entrada, salida, por_noche, noches)
     if total is None:
         log.info("OTAs: encontrado '%s' pero sin precio para %s -> %s",
                  hotel.get("name"), entrada, salida)
@@ -240,6 +270,7 @@ def _consultar(clave: str, entrada: date, salida: date, noches: int) -> dict | N
         "hotel": hotel.get("name"),
         "por_noche": por_noche,
         "total": total,
+        "total_estimado": total_estimado,
         "fuentes": fuentes[:8],
     }
 

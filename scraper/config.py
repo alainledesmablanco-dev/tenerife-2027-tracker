@@ -91,6 +91,20 @@ AEROLINEAS = [
     ("Air Europa", "https://www.aireuropa.com/es/es"),
 ]
 
+# Lo que sabemos a mano sobre la venta de vuelos
+# ---------------------------------------------------------------------
+# Comprobado abriendo las webs de las tres aerolineas el 27-08-2026. Esto NO
+# lo puede averiguar el rastreo por si mismo ahora mismo, y sin embargo el
+# panel necesita saberlo: sin este dato traducia "no he podido cotizar" como
+# "no hay venta", que es justo lo contrario de la verdad.
+VENTA_VUELOS_ABIERTA = True
+VENTA_VUELOS_COMPROBADA = date(2026, 8, 27)
+VENTA_VUELOS_NOTA = (
+    "Volotea (Tenerife Sur, miércoles y domingos, ~768 € los tres) y "
+    "Air Europa (Tenerife Norte, martes, jueves y sábados, ~660 €) ya venden "
+    "agosto de 2027. Vueling todavía no: su calendario acaba el 13-jun-2027."
+)
+
 # Lectores de aerolineas dormidos hasta septiembre de 2026
 # ---------------------------------------------------------------------
 # Los dos raspan la web de la aerolinea y ninguno funciona desde un runner de

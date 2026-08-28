@@ -172,8 +172,36 @@ def _ventanas_de(tarifas: list[dict], tope: int) -> list[tuple[date, date, int]]
     return ventanas
 
 
+def _sanear_otas(datos: dict) -> None:
+    """Corrige de una vez las ofertas de OTAs ya guardadas.
+
+    El fallo del mismo importe como noche y como total lleva meses en el
+    historico. Las consultas nuevas ya salen bien, pero Google Hotels no
+    devuelve datos todos los dias, asi que sin esto el panel seguiria
+    enseñando "328 €/noche · 328 € total" para siete noches hasta vaya usted
+    a saber cuando. Se aplica el mismo criterio que en otas.py.
+    """
+    for oferta in datos.get("ofertas_otas") or []:
+        pn, tt, estimado = otas._coherentes(
+            oferta.get("por_noche"), oferta.get("total"), oferta.get("noches") or 0)
+        if estimado:
+            log.info("Historico: corregido el total de una oferta de OTAs "
+                     "(%s -> %s): %s en vez de %s",
+                     oferta.get("entrada"), oferta.get("salida"), tt, oferta.get("total"))
+            oferta["por_noche"], oferta["total"] = pn, tt
+            oferta["total_estimado"] = True
+        for fuente in oferta.get("fuentes") or []:
+            f_pn, f_tt, f_est = otas._coherentes(
+                fuente.get("por_noche"), fuente.get("total"),
+                oferta.get("noches") or 0)
+            if f_est:
+                fuente["por_noche"], fuente["total"] = f_pn, f_tt
+                fuente["total_estimado"] = True
+
+
 def main() -> int:
     datos = cargar_historico()
+    _sanear_otas(datos)
     prueba = _solo_vuelos()
 
     if prueba:
