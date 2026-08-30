@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": false,
-  "ultima_comprobacion": "2026-08-30 13:30",
+  "ultima_comprobacion": "2026-08-30 22:28",
   "tarifas_actuales": [
     {
       "entrada": "2027-08-07",
@@ -34,35 +34,35 @@
       "noches": 9,
       "habitacion": "Suite",
       "regimen": "Todo Incluido Plus",
-      "total": 2444.0,
+      "total": 2445.0,
       "por_noche": 271.0,
-      "antes": 2876.0,
+      "antes": 2877.0,
       "descuento": "-15%",
       "cancelable": true,
       "codigo_promo": null
     },
     {
       "entrada": "2027-08-08",
-      "salida": "2027-08-16",
-      "noches": 8,
+      "salida": "2027-08-17",
+      "noches": 9,
       "habitacion": "Suite Ocean View",
       "regimen": "Todo Incluido Plus",
-      "total": 2287.0,
+      "total": 2572.0,
       "por_noche": 285.0,
-      "antes": 2691.0,
+      "antes": 3027.0,
       "descuento": "-15%",
       "cancelable": true,
       "codigo_promo": null
     },
     {
-      "entrada": "2027-08-03",
+      "entrada": "2027-08-04",
       "salida": "2027-08-12",
-      "noches": 9,
+      "noches": 8,
       "habitacion": "Suite Ocean View",
       "regimen": "Todo Incluido Plus",
-      "total": 2582.0,
+      "total": 2295.0,
       "por_noche": 286.0,
-      "antes": 3038.0,
+      "antes": 2701.0,
       "descuento": "-15%",
       "cancelable": true,
       "codigo_promo": null
@@ -94,14 +94,14 @@
       "codigo_promo": null
     },
     {
-      "entrada": "2027-08-06",
-      "salida": "2027-08-11",
+      "entrada": "2027-08-05",
+      "salida": "2027-08-10",
       "noches": 5,
       "habitacion": "Suite",
       "regimen": "Todo Incluido Plus",
-      "total": 1443.0,
+      "total": 1444.0,
       "por_noche": 288.0,
-      "antes": 1604.0,
+      "antes": 1605.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
@@ -112,9 +112,9 @@
       "noches": 8,
       "habitacion": "Dúplex",
       "regimen": "Todo Incluido Plus",
-      "total": 2396.0,
+      "total": 2397.0,
       "por_noche": 299.0,
-      "antes": 2819.0,
+      "antes": 2820.0,
       "descuento": "-15%",
       "cancelable": true,
       "codigo_promo": null
@@ -125,9 +125,9 @@
       "noches": 9,
       "habitacion": "Dúplex",
       "regimen": "Todo Incluido Plus",
-      "total": 2697.0,
+      "total": 2698.0,
       "por_noche": 299.0,
-      "antes": 3174.0,
+      "antes": 3175.0,
       "descuento": "-15%",
       "cancelable": true,
       "codigo_promo": null
@@ -172,14 +172,14 @@
       "codigo_promo": null
     },
     {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-15",
+      "entrada": "2027-08-07",
+      "salida": "2027-08-14",
       "noches": 7,
       "habitacion": "Dúplex",
       "regimen": "Todo Incluido Plus",
-      "total": 2222.0,
+      "total": 2224.0,
       "por_noche": 317.0,
-      "antes": 2469.0,
+      "antes": 2472.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
@@ -1418,11 +1418,33 @@
       "tarifas_encontradas": 100,
       "vuelos_abiertos": false,
       "detalle_vuelos": "Google Vuelos todavia no cotiza estas fechas; empezara hacia el 22-09-2026, y entonces SerpApi traera Volotea, Vueling y Air Europa sin navegador"
+    },
+    {
+      "fecha": "2026-08-30 22:28",
+      "mejor_por_noche": 271.0,
+      "mejor_total": 2175.0,
+      "mejor_detalle": {
+        "entrada": "2027-08-07",
+        "salida": "2027-08-15",
+        "noches": 8,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2175.0,
+        "por_noche": 271.0,
+        "antes": 2559.0,
+        "descuento": "-15%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "mejor_viaje": null,
+      "tarifas_encontradas": 140,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "Google Vuelos todavia no cotiza estas fechas; empezara hacia el 23-09-2026, y entonces SerpApi traera Volotea, Vueling y Air Europa sin navegador"
     }
   ],
   "ofertas_vuelos": [],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-08-30 13:30",
+  "otas_comprobado": "2026-08-30 22:28",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -1452,6 +1474,6 @@
   "vuelos_actualizado": "2026-08-28 20:25",
   "combinaciones": [],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-08-30 13:30",
-  "detalle_vuelos": "Google Vuelos todavia no cotiza estas fechas; empezara hacia el 22-09-2026, y entonces SerpApi traera Volotea, Vueling y Air Europa sin navegador"
+  "vuelos_comprobado": "2026-08-30 22:28",
+  "detalle_vuelos": "Google Vuelos todavia no cotiza estas fechas; empezara hacia el 23-09-2026, y entonces SerpApi traera Volotea, Vueling y Air Europa sin navegador"
 }
