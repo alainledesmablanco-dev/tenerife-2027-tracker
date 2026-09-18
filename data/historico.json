@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": false,
-  "ultima_comprobacion": "2026-09-17 22:55",
+  "ultima_comprobacion": "2026-09-18 12:43",
   "tarifas_actuales": [
     {
       "entrada": "2027-08-08",
@@ -2232,11 +2232,33 @@
       "tarifas_encontradas": 140,
       "vuelos_abiertos": false,
       "detalle_vuelos": "Google Vuelos todavia no cotiza estas fechas; empezara hacia el 23-09-2026, y entonces SerpApi traera Volotea, Vueling y Air Europa sin navegador"
+    },
+    {
+      "fecha": "2026-09-18 12:43",
+      "mejor_por_noche": 273.0,
+      "mejor_total": 2464.0,
+      "mejor_detalle": {
+        "entrada": "2027-08-08",
+        "salida": "2027-08-17",
+        "noches": 9,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2464.0,
+        "por_noche": 273.0,
+        "antes": 2899.0,
+        "descuento": "-15%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "mejor_viaje": null,
+      "tarifas_encontradas": 140,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "Google Vuelos todavia no cotiza estas fechas; empezara hacia el 23-09-2026, y entonces SerpApi traera Volotea, Vueling y Air Europa sin navegador"
     }
   ],
   "ofertas_vuelos": [],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-09-17 13:06",
+  "otas_comprobado": "2026-09-18 12:43",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -2252,20 +2274,14 @@
           "por_noche": 391.0,
           "total": 2740.0,
           "total_estimado": false
-        },
-        {
-          "web": "Vio.com",
-          "por_noche": 544.0,
-          "total": 3811.0,
-          "total_estimado": false
         }
       ]
     }
   ],
-  "otas_actualizado": "2026-09-17 13:06",
+  "otas_actualizado": "2026-09-18 12:43",
   "vuelos_actualizado": "2026-08-28 20:25",
   "combinaciones": [],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-09-17 22:55",
+  "vuelos_comprobado": "2026-09-18 12:43",
   "detalle_vuelos": "Google Vuelos todavia no cotiza estas fechas; empezara hacia el 23-09-2026, y entonces SerpApi traera Volotea, Vueling y Air Europa sin navegador"
 }
