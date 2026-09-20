@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": false,
-  "ultima_comprobacion": "2026-09-19 21:57",
+  "ultima_comprobacion": "2026-09-20 12:49",
   "tarifas_actuales": [
     {
       "entrada": "2027-08-07",
@@ -94,14 +94,14 @@
       "codigo_promo": null
     },
     {
-      "entrada": "2027-08-07",
-      "salida": "2027-08-12",
+      "entrada": "2027-08-08",
+      "salida": "2027-08-13",
       "noches": 5,
       "habitacion": "Suite",
       "regimen": "Todo Incluido Plus",
-      "total": 1458.0,
+      "total": 1456.0,
       "por_noche": 291.0,
-      "antes": 1620.0,
+      "antes": 1618.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
@@ -159,14 +159,14 @@
       "codigo_promo": null
     },
     {
-      "entrada": "2027-08-07",
-      "salida": "2027-08-12",
+      "entrada": "2027-08-08",
+      "salida": "2027-08-13",
       "noches": 5,
       "habitacion": "Suite Ocean View",
       "regimen": "Todo Incluido Plus",
-      "total": 1534.0,
+      "total": 1532.0,
       "por_noche": 306.0,
-      "antes": 1705.0,
+      "antes": 1703.0,
       "descuento": "-10%",
       "cancelable": true,
       "codigo_promo": null
@@ -2320,11 +2320,33 @@
       "tarifas_encontradas": 140,
       "vuelos_abiertos": false,
       "detalle_vuelos": "Google Vuelos todavia no cotiza estas fechas; empezara hacia el 22-09-2026, y entonces SerpApi traera Volotea, Vueling y Air Europa sin navegador"
+    },
+    {
+      "fecha": "2026-09-20 12:49",
+      "mejor_por_noche": 274.0,
+      "mejor_total": 2198.0,
+      "mejor_detalle": {
+        "entrada": "2027-08-07",
+        "salida": "2027-08-15",
+        "noches": 8,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2198.0,
+        "por_noche": 274.0,
+        "antes": 2587.0,
+        "descuento": "-15%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "mejor_viaje": null,
+      "tarifas_encontradas": 124,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "Google Vuelos todavia no cotiza estas fechas; empezara hacia el 22-09-2026, y entonces SerpApi traera Volotea, Vueling y Air Europa sin navegador"
     }
   ],
   "ofertas_vuelos": [],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-09-19 12:28",
+  "otas_comprobado": "2026-09-20 12:49",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -2332,28 +2354,22 @@
       "noches": 7,
       "hotel": "Hotel Landmar Costa Los Gigantes Family Resort",
       "por_noche": 392.0,
-      "total": 2743.0,
+      "total": 2746.0,
       "total_estimado": false,
       "fuentes": [
         {
           "web": "Booking.com",
           "por_noche": 392.0,
-          "total": 2743.0,
-          "total_estimado": false
-        },
-        {
-          "web": "Vio.com",
-          "por_noche": 478.0,
-          "total": 3345.0,
+          "total": 2746.0,
           "total_estimado": false
         }
       ]
     }
   ],
-  "otas_actualizado": "2026-09-19 12:28",
+  "otas_actualizado": "2026-09-20 12:49",
   "vuelos_actualizado": "2026-08-28 20:25",
   "combinaciones": [],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-09-19 21:57",
+  "vuelos_comprobado": "2026-09-20 12:49",
   "detalle_vuelos": "Google Vuelos todavia no cotiza estas fechas; empezara hacia el 22-09-2026, y entonces SerpApi traera Volotea, Vueling y Air Europa sin navegador"
 }
