@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-09-22 13:11",
+  "ultima_comprobacion": "2026-09-22 22:51",
   "tarifas_actuales": [
     {
       "entrada": "2027-08-07",
@@ -60,9 +60,9 @@
       "noches": 9,
       "habitacion": "Suite Ocean View",
       "regimen": "Todo Incluido Plus",
-      "total": 2596.0,
+      "total": 2597.0,
       "por_noche": 288.0,
-      "antes": 3055.0,
+      "antes": 3056.0,
       "descuento": "-15%",
       "cancelable": true,
       "codigo_promo": null
@@ -2428,6 +2428,28 @@
       },
       "mejor_viaje": 3028.0,
       "tarifas_encontradas": 128,
+      "vuelos_abiertos": true,
+      "detalle_vuelos": "Desde 766 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-07 -> 2027-08-16 (BIO->TFN)"
+    },
+    {
+      "fecha": "2026-09-22 22:51",
+      "mejor_por_noche": 274.0,
+      "mejor_total": 2198.0,
+      "mejor_detalle": {
+        "entrada": "2027-08-07",
+        "salida": "2027-08-15",
+        "noches": 8,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2198.0,
+        "por_noche": 274.0,
+        "antes": 2587.0,
+        "descuento": "-15%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "mejor_viaje": 3028.0,
+      "tarifas_encontradas": 140,
       "vuelos_abiertos": true,
       "detalle_vuelos": "Desde 766 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-07 -> 2027-08-16 (BIO->TFN)"
     }
