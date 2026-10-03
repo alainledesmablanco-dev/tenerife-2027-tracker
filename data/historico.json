@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-10-03 13:14",
+  "ultima_comprobacion": "2026-10-03 22:33",
   "tarifas_actuales": [
     {
       "entrada": "2027-08-08",
@@ -2895,6 +2895,28 @@
     },
     {
       "fecha": "2026-10-03 13:14",
+      "mejor_por_noche": 274.0,
+      "mejor_total": 2198.0,
+      "mejor_detalle": {
+        "entrada": "2027-08-08",
+        "salida": "2027-08-16",
+        "noches": 8,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2198.0,
+        "por_noche": 274.0,
+        "antes": 2587.0,
+        "descuento": "-15%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "mejor_viaje": 3191.0,
+      "tarifas_encontradas": 140,
+      "vuelos_abiertos": true,
+      "detalle_vuelos": "Desde 779 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-17 (BIO->TFN)"
+    },
+    {
+      "fecha": "2026-10-03 22:33",
       "mejor_por_noche": 274.0,
       "mejor_total": 2198.0,
       "mejor_detalle": {
