@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-10-04 22:50",
+  "ultima_comprobacion": "2026-10-05 15:46",
   "tarifas_actuales": [
     {
       "entrada": "2027-08-07",
@@ -2980,6 +2980,28 @@
       "tarifas_encontradas": 140,
       "vuelos_abiertos": true,
       "detalle_vuelos": "Desde 743 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-16 (BIO->TFN)"
+    },
+    {
+      "fecha": "2026-10-05 15:46",
+      "mejor_por_noche": 275.0,
+      "mejor_total": 2205.0,
+      "mejor_detalle": {
+        "entrada": "2027-08-07",
+        "salida": "2027-08-15",
+        "noches": 8,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2205.0,
+        "por_noche": 275.0,
+        "antes": 2595.0,
+        "descuento": "-15%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "mejor_viaje": 3083.0,
+      "tarifas_encontradas": 140,
+      "vuelos_abiertos": true,
+      "detalle_vuelos": "Desde 766 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-16 (BIO->TFN)"
     }
   ],
   "ofertas_vuelos": [
@@ -2989,8 +3011,8 @@
       "destino_nombre": "Tenerife Norte",
       "ida": "2027-08-08",
       "vuelta": "2027-08-16",
-      "precio": 247.67,
-      "precio_total": 743.0,
+      "precio": 255.33,
+      "precio_total": 766.0,
       "horario": "15:30 – 17:40",
       "duracion": "3 h 10 min",
       "escalas": "directo",
@@ -3003,8 +3025,50 @@
       "destino_nombre": "Tenerife Norte",
       "ida": "2027-08-08",
       "vuelta": "2027-08-16",
-      "precio": 247.67,
-      "precio_total": 743.0,
+      "precio": 255.33,
+      "precio_total": 766.0,
+      "horario": "18:30 – 20:40",
+      "duracion": "3 h 10 min",
+      "escalas": "directo",
+      "equipaje": "según tarifa de la aerolínea",
+      "fuente": "Google Flights (SerpApi)"
+    },
+    {
+      "aerolinea": "Vueling",
+      "destino": "TFN",
+      "destino_nombre": "Tenerife Norte",
+      "ida": "2027-08-06",
+      "vuelta": "2027-08-15",
+      "precio": 271.0,
+      "precio_total": 813.0,
+      "horario": "18:30 – 20:40",
+      "duracion": "3 h 10 min",
+      "escalas": "directo",
+      "equipaje": "según tarifa de la aerolínea",
+      "fuente": "Google Flights (SerpApi)"
+    },
+    {
+      "aerolinea": "Vueling",
+      "destino": "TFN",
+      "destino_nombre": "Tenerife Norte",
+      "ida": "2027-08-06",
+      "vuelta": "2027-08-15",
+      "precio": 292.33,
+      "precio_total": 877.0,
+      "horario": "07:40 – 09:50",
+      "duracion": "3 h 10 min",
+      "escalas": "directo",
+      "equipaje": "según tarifa de la aerolínea",
+      "fuente": "Google Flights (SerpApi)"
+    },
+    {
+      "aerolinea": "Vueling",
+      "destino": "TFN",
+      "destino_nombre": "Tenerife Norte",
+      "ida": "2027-08-07",
+      "vuelta": "2027-08-15",
+      "precio": 577.67,
+      "precio_total": 1733.0,
       "horario": "18:30 – 20:40",
       "duracion": "3 h 10 min",
       "escalas": "directo",
@@ -3017,51 +3081,9 @@
       "destino_nombre": "Tenerife Norte",
       "ida": "2027-08-07",
       "vuelta": "2027-08-15",
-      "precio": 276.0,
-      "precio_total": 828.0,
-      "horario": "18:30 – 20:40",
-      "duracion": "3 h 10 min",
-      "escalas": "directo",
-      "equipaje": "según tarifa de la aerolínea",
-      "fuente": "Google Flights (SerpApi)"
-    },
-    {
-      "aerolinea": "Vueling",
-      "destino": "TFN",
-      "destino_nombre": "Tenerife Norte",
-      "ida": "2027-08-07",
-      "vuelta": "2027-08-15",
-      "precio": 286.67,
-      "precio_total": 860.0,
+      "precio": 588.67,
+      "precio_total": 1766.0,
       "horario": "06:50 – 09:00",
-      "duracion": "3 h 10 min",
-      "escalas": "directo",
-      "equipaje": "según tarifa de la aerolínea",
-      "fuente": "Google Flights (SerpApi)"
-    },
-    {
-      "aerolinea": "Vueling",
-      "destino": "TFN",
-      "destino_nombre": "Tenerife Norte",
-      "ida": "2027-08-08",
-      "vuelta": "2027-08-17",
-      "precio": 516.67,
-      "precio_total": 1550.0,
-      "horario": "15:30 – 17:40",
-      "duracion": "3 h 10 min",
-      "escalas": "directo",
-      "equipaje": "según tarifa de la aerolínea",
-      "fuente": "Google Flights (SerpApi)"
-    },
-    {
-      "aerolinea": "Vueling",
-      "destino": "TFN",
-      "destino_nombre": "Tenerife Norte",
-      "ida": "2027-08-08",
-      "vuelta": "2027-08-17",
-      "precio": 516.67,
-      "precio_total": 1550.0,
-      "horario": "18:30 – 20:40",
       "duracion": "3 h 10 min",
       "escalas": "directo",
       "equipaje": "según tarifa de la aerolínea",
@@ -3069,7 +3091,7 @@
     }
   ],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-10-04 13:56",
+  "otas_comprobado": "2026-10-05 15:46",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -3077,35 +3099,21 @@
       "noches": 7,
       "hotel": "Hotel Landmar Costa Los Gigantes Family Resort",
       "por_noche": 393.0,
-      "total": 2753.0,
+      "total": 2754.0,
       "total_estimado": false,
       "fuentes": [
         {
           "web": "Booking.com",
           "por_noche": 393.0,
-          "total": 2753.0,
+          "total": 2754.0,
           "total_estimado": false
         }
       ]
     }
   ],
-  "otas_actualizado": "2026-10-04 13:56",
-  "vuelos_actualizado": "2026-10-04 13:56",
+  "otas_actualizado": "2026-10-05 15:46",
+  "vuelos_actualizado": "2026-10-05 15:46",
   "combinaciones": [
-    {
-      "entrada": "2027-08-07",
-      "salida": "2027-08-15",
-      "noches": 8,
-      "habitacion": "Suite",
-      "hotel_total": 2205.0,
-      "hotel_por_noche": 275.0,
-      "aerolinea": "Vueling",
-      "destino": "TFN",
-      "vuelo_por_adulto": 276.0,
-      "vuelo_fuente": "Google Flights (SerpApi)",
-      "vuelos_total": 828.0,
-      "total": 3033.0
-    },
     {
       "entrada": "2027-08-08",
       "salida": "2027-08-16",
@@ -3115,10 +3123,38 @@
       "hotel_por_noche": 289.0,
       "aerolinea": "Vueling",
       "destino": "TFN",
-      "vuelo_por_adulto": 247.67,
+      "vuelo_por_adulto": 255.33,
       "vuelo_fuente": "Google Flights (SerpApi)",
-      "vuelos_total": 743.0,
-      "total": 3060.0
+      "vuelos_total": 766.0,
+      "total": 3083.0
+    },
+    {
+      "entrada": "2027-08-06",
+      "salida": "2027-08-15",
+      "noches": 9,
+      "habitacion": "Suite",
+      "hotel_total": 2483.0,
+      "hotel_por_noche": 275.0,
+      "aerolinea": "Vueling",
+      "destino": "TFN",
+      "vuelo_por_adulto": 271.0,
+      "vuelo_fuente": "Google Flights (SerpApi)",
+      "vuelos_total": 813.0,
+      "total": 3296.0
+    },
+    {
+      "entrada": "2027-08-07",
+      "salida": "2027-08-15",
+      "noches": 8,
+      "habitacion": "Suite",
+      "hotel_total": 2205.0,
+      "hotel_por_noche": 275.0,
+      "aerolinea": "Vueling",
+      "destino": "TFN",
+      "vuelo_por_adulto": 577.67,
+      "vuelo_fuente": "Google Flights (SerpApi)",
+      "vuelos_total": 1733.0,
+      "total": 3938.0
     },
     {
       "entrada": "2027-08-07",
@@ -3129,27 +3165,13 @@
       "hotel_por_noche": 303.0,
       "aerolinea": "Vueling",
       "destino": "TFN",
-      "vuelo_por_adulto": 276.0,
+      "vuelo_por_adulto": 577.67,
       "vuelo_fuente": "Google Flights (SerpApi)",
-      "vuelos_total": 828.0,
-      "total": 3259.0
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-17",
-      "noches": 9,
-      "habitacion": "Dúplex",
-      "hotel_total": 2726.0,
-      "hotel_por_noche": 302.0,
-      "aerolinea": "Vueling",
-      "destino": "TFN",
-      "vuelo_por_adulto": 516.67,
-      "vuelo_fuente": "Google Flights (SerpApi)",
-      "vuelos_total": 1550.0,
-      "total": 4276.0
+      "vuelos_total": 1733.0,
+      "total": 4164.0
     }
   ],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-10-04 13:56",
-  "detalle_vuelos": "Desde 743 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-16 (BIO->TFN)"
+  "vuelos_comprobado": "2026-10-05 15:46",
+  "detalle_vuelos": "Desde 766 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-16 (BIO->TFN)"
 }
