@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-10-20 13:13",
+  "ultima_comprobacion": "2026-10-20 23:19",
   "tarifas_actuales": [],
   "registros": [
     {
@@ -3447,6 +3447,16 @@
     },
     {
       "fecha": "2026-10-20 13:13",
+      "mejor_por_noche": null,
+      "mejor_total": null,
+      "mejor_detalle": null,
+      "mejor_viaje": null,
+      "tarifas_encontradas": 0,
+      "vuelos_abiertos": true,
+      "detalle_vuelos": "Desde 747 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-16 (BIO->TFN)"
+    },
+    {
+      "fecha": "2026-10-20 23:19",
       "mejor_por_noche": null,
       "mejor_total": null,
       "mejor_detalle": null,
