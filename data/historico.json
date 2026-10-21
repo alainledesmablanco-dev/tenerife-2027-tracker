@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-10-20 23:19",
+  "ultima_comprobacion": "2026-10-21 13:28",
   "tarifas_actuales": [],
   "registros": [
     {
@@ -3464,6 +3464,16 @@
       "tarifas_encontradas": 0,
       "vuelos_abiertos": true,
       "detalle_vuelos": "Desde 747 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-16 (BIO->TFN)"
+    },
+    {
+      "fecha": "2026-10-21 13:28",
+      "mejor_por_noche": null,
+      "mejor_total": null,
+      "mejor_detalle": null,
+      "mejor_viaje": null,
+      "tarifas_encontradas": 0,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "Sin ventana de fechas que consultar"
     }
   ],
   "ofertas_vuelos": [
@@ -3553,7 +3563,7 @@
     }
   ],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-10-20 00:01",
+  "otas_comprobado": "2026-10-21 13:28",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -3569,20 +3579,14 @@
           "por_noche": 395.0,
           "total": 2762.0,
           "total_estimado": false
-        },
-        {
-          "web": "Vio.com",
-          "por_noche": 464.0,
-          "total": 3250.0,
-          "total_estimado": false
         }
       ]
     }
   ],
-  "otas_actualizado": "2026-10-20 00:01",
+  "otas_actualizado": "2026-10-21 13:28",
   "vuelos_actualizado": "2026-10-20 00:01",
   "combinaciones": [],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-10-20 00:01",
-  "detalle_vuelos": "Desde 747 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-16 (BIO->TFN)"
+  "vuelos_comprobado": "2026-10-21 13:28",
+  "detalle_vuelos": "Sin ventana de fechas que consultar"
 }
