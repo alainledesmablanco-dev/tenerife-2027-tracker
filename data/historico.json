@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-10-24 12:35",
+  "ultima_comprobacion": "2026-10-24 22:17",
   "tarifas_actuales": [],
   "registros": [
     {
@@ -3534,6 +3534,16 @@
       "tarifas_encontradas": 0,
       "vuelos_abiertos": false,
       "detalle_vuelos": "Sin ventana de fechas que consultar"
+    },
+    {
+      "fecha": "2026-10-24 22:17",
+      "mejor_por_noche": null,
+      "mejor_total": null,
+      "mejor_detalle": null,
+      "mejor_viaje": null,
+      "tarifas_encontradas": 0,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "Sin ventana de fechas que consultar"
     }
   ],
   "ofertas_vuelos": [
@@ -3647,6 +3657,6 @@
   "vuelos_actualizado": "2026-10-20 00:01",
   "combinaciones": [],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-10-24 12:35",
+  "vuelos_comprobado": "2026-10-24 22:17",
   "detalle_vuelos": "Sin ventana de fechas que consultar"
 }
