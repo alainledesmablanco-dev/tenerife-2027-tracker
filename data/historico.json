@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-10-28 14:17",
+  "ultima_comprobacion": "2026-10-29 00:11",
   "tarifas_actuales": [
     {
       "entrada": "2027-08-07",
@@ -3846,6 +3846,28 @@
       "tarifas_encontradas": 140,
       "vuelos_abiertos": true,
       "detalle_vuelos": "Desde 777 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-07 -> 2027-08-16 (BIO->TFN)"
+    },
+    {
+      "fecha": "2026-10-29 00:11",
+      "mejor_por_noche": 276.0,
+      "mejor_total": 2215.0,
+      "mejor_detalle": {
+        "entrada": "2027-08-07",
+        "salida": "2027-08-15",
+        "noches": 8,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2215.0,
+        "por_noche": 276.0,
+        "antes": 2606.0,
+        "descuento": "-15%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "mejor_viaje": 3067.0,
+      "tarifas_encontradas": 140,
+      "vuelos_abiertos": true,
+      "detalle_vuelos": "Desde 777 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-07 -> 2027-08-16 (BIO->TFN)"
     }
   ],
   "ofertas_vuelos": [
@@ -3935,7 +3957,7 @@
     }
   ],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-10-28 14:17",
+  "otas_comprobado": "2026-10-29 00:11",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -3955,8 +3977,8 @@
       ]
     }
   ],
-  "otas_actualizado": "2026-10-28 14:17",
-  "vuelos_actualizado": "2026-10-28 14:17",
+  "otas_actualizado": "2026-10-29 00:11",
+  "vuelos_actualizado": "2026-10-29 00:11",
   "combinaciones": [
     {
       "entrada": "2027-08-07",
@@ -4030,6 +4052,6 @@
     }
   ],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-10-28 14:17",
+  "vuelos_comprobado": "2026-10-29 00:11",
   "detalle_vuelos": "Desde 777 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-07 -> 2027-08-16 (BIO->TFN)"
 }
