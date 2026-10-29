@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-10-29 14:36",
+  "ultima_comprobacion": "2026-10-30 00:31",
   "tarifas_actuales": [],
   "registros": [
     {
@@ -3682,6 +3682,16 @@
       "tarifas_encontradas": 0,
       "vuelos_abiertos": true,
       "detalle_vuelos": "Desde 777 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-07 -> 2027-08-16 (BIO->TFN)"
+    },
+    {
+      "fecha": "2026-10-30 00:31",
+      "mejor_por_noche": null,
+      "mejor_total": null,
+      "mejor_detalle": null,
+      "mejor_viaje": null,
+      "tarifas_encontradas": 0,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "Sin ventana de fechas que consultar"
     }
   ],
   "ofertas_vuelos": [
@@ -3771,7 +3781,7 @@
     }
   ],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-10-29 00:11",
+  "otas_comprobado": "2026-10-30 00:31",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -3779,22 +3789,22 @@
       "noches": 7,
       "hotel": "Hotel Landmar Costa Los Gigantes Family Resort",
       "por_noche": 397.0,
-      "total": 2779.0,
+      "total": 2781.0,
       "total_estimado": false,
       "fuentes": [
         {
           "web": "Booking.com",
           "por_noche": 397.0,
-          "total": 2779.0,
+          "total": 2781.0,
           "total_estimado": false
         }
       ]
     }
   ],
-  "otas_actualizado": "2026-10-29 00:11",
+  "otas_actualizado": "2026-10-30 00:31",
   "vuelos_actualizado": "2026-10-29 00:11",
   "combinaciones": [],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-10-29 00:11",
-  "detalle_vuelos": "Desde 777 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-07 -> 2027-08-16 (BIO->TFN)"
+  "vuelos_comprobado": "2026-10-30 00:31",
+  "detalle_vuelos": "Sin ventana de fechas que consultar"
 }
