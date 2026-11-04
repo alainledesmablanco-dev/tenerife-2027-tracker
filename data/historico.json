@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-11-04 16:05",
+  "ultima_comprobacion": "2026-11-05 01:18",
   "tarifas_actuales": [],
   "registros": [
     {
@@ -3874,6 +3874,16 @@
       "tarifas_encontradas": 0,
       "vuelos_abiertos": false,
       "detalle_vuelos": "Sin ventana de fechas que consultar"
+    },
+    {
+      "fecha": "2026-11-05 01:18",
+      "mejor_por_noche": null,
+      "mejor_total": null,
+      "mejor_detalle": null,
+      "mejor_viaje": null,
+      "tarifas_encontradas": 0,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "Sin ventana de fechas que consultar"
     }
   ],
   "ofertas_vuelos": [
@@ -3963,7 +3973,7 @@
     }
   ],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-11-04 01:00",
+  "otas_comprobado": "2026-11-05 01:18",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -3971,28 +3981,22 @@
       "noches": 7,
       "hotel": "Hotel Landmar Costa Los Gigantes Family Resort",
       "por_noche": 399.0,
-      "total": 2792.0,
+      "total": 2793.0,
       "total_estimado": false,
       "fuentes": [
         {
           "web": "Booking.com",
           "por_noche": 399.0,
-          "total": 2792.0,
-          "total_estimado": false
-        },
-        {
-          "web": "priceline.com",
-          "por_noche": 399.0,
-          "total": 2792.0,
+          "total": 2793.0,
           "total_estimado": false
         }
       ]
     }
   ],
-  "otas_actualizado": "2026-11-04 01:00",
+  "otas_actualizado": "2026-11-05 01:18",
   "vuelos_actualizado": "2026-11-03 02:22",
   "combinaciones": [],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-11-04 16:05",
+  "vuelos_comprobado": "2026-11-05 01:18",
   "detalle_vuelos": "Sin ventana de fechas que consultar"
 }
