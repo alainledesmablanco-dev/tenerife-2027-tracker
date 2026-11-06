@@ -13,204 +13,8 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-11-06 15:53",
-  "tarifas_actuales": [
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-16",
-      "noches": 8,
-      "habitacion": "Suite",
-      "regimen": "Todo Incluido Plus",
-      "total": 2219.0,
-      "por_noche": 277.0,
-      "antes": 2611.0,
-      "descuento": "-15%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-07",
-      "salida": "2027-08-16",
-      "noches": 9,
-      "habitacion": "Suite",
-      "regimen": "Todo Incluido Plus",
-      "total": 2499.0,
-      "por_noche": 277.0,
-      "antes": 2941.0,
-      "descuento": "-15%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-16",
-      "noches": 8,
-      "habitacion": "Suite Ocean View",
-      "regimen": "Todo Incluido Plus",
-      "total": 2334.0,
-      "por_noche": 291.0,
-      "antes": 2747.0,
-      "descuento": "-15%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-17",
-      "noches": 9,
-      "habitacion": "Suite Ocean View",
-      "regimen": "Todo Incluido Plus",
-      "total": 2625.0,
-      "por_noche": 291.0,
-      "antes": 3089.0,
-      "descuento": "-15%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-07",
-      "salida": "2027-08-14",
-      "noches": 7,
-      "habitacion": "Suite",
-      "regimen": "Todo Incluido Plus",
-      "total": 2062.0,
-      "por_noche": 294.0,
-      "antes": 2292.0,
-      "descuento": "-10%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-07",
-      "salida": "2027-08-13",
-      "noches": 6,
-      "habitacion": "Suite",
-      "regimen": "Todo Incluido Plus",
-      "total": 1769.0,
-      "por_noche": 294.0,
-      "antes": 1966.0,
-      "descuento": "-10%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-13",
-      "noches": 5,
-      "habitacion": "Suite",
-      "regimen": "Todo Incluido Plus",
-      "total": 1472.0,
-      "por_noche": 294.0,
-      "antes": 1636.0,
-      "descuento": "-10%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-16",
-      "noches": 8,
-      "habitacion": "Dúplex",
-      "regimen": "Todo Incluido Plus",
-      "total": 2443.0,
-      "por_noche": 305.0,
-      "antes": 2875.0,
-      "descuento": "-15%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-07",
-      "salida": "2027-08-16",
-      "noches": 9,
-      "habitacion": "Dúplex",
-      "regimen": "Todo Incluido Plus",
-      "total": 2753.0,
-      "por_noche": 305.0,
-      "antes": 3239.0,
-      "descuento": "-15%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-07",
-      "salida": "2027-08-14",
-      "noches": 7,
-      "habitacion": "Suite Ocean View",
-      "regimen": "Todo Incluido Plus",
-      "total": 2169.0,
-      "por_noche": 309.0,
-      "antes": 2411.0,
-      "descuento": "-10%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-14",
-      "noches": 6,
-      "habitacion": "Suite Ocean View",
-      "regimen": "Todo Incluido Plus",
-      "total": 1857.0,
-      "por_noche": 309.0,
-      "antes": 2064.0,
-      "descuento": "-10%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-13",
-      "noches": 5,
-      "habitacion": "Suite Ocean View",
-      "regimen": "Todo Incluido Plus",
-      "total": 1548.0,
-      "por_noche": 309.0,
-      "antes": 1721.0,
-      "descuento": "-10%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-15",
-      "noches": 7,
-      "habitacion": "Dúplex",
-      "regimen": "Todo Incluido Plus",
-      "total": 2266.0,
-      "por_noche": 323.0,
-      "antes": 2518.0,
-      "descuento": "-10%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-07",
-      "salida": "2027-08-13",
-      "noches": 6,
-      "habitacion": "Dúplex",
-      "regimen": "Todo Incluido Plus",
-      "total": 1948.0,
-      "por_noche": 324.0,
-      "antes": 2165.0,
-      "descuento": "-10%",
-      "cancelable": true,
-      "codigo_promo": null
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-13",
-      "noches": 5,
-      "habitacion": "Dúplex",
-      "regimen": "Todo Incluido Plus",
-      "total": 1620.0,
-      "por_noche": 324.0,
-      "antes": 1801.0,
-      "descuento": "-10%",
-      "cancelable": true,
-      "codigo_promo": null
-    }
-  ],
+  "ultima_comprobacion": "2026-11-07 00:51",
+  "tarifas_actuales": [],
   "registros": [
     {
       "fecha": "2026-08-09 00:45",
@@ -4124,6 +3928,16 @@
       "tarifas_encontradas": 140,
       "vuelos_abiertos": true,
       "detalle_vuelos": "Desde 792 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-16 (BIO->TFN)"
+    },
+    {
+      "fecha": "2026-11-07 00:51",
+      "mejor_por_noche": null,
+      "mejor_total": null,
+      "mejor_detalle": null,
+      "mejor_viaje": null,
+      "tarifas_encontradas": 0,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "Sin ventana de fechas que consultar"
     }
   ],
   "ofertas_vuelos": [
@@ -4213,7 +4027,7 @@
     }
   ],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-11-06 15:53",
+  "otas_comprobado": "2026-11-07 00:51",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -4229,99 +4043,20 @@
           "por_noche": 399.0,
           "total": 2795.0,
           "total_estimado": false
+        },
+        {
+          "web": "priceline.com",
+          "por_noche": 399.0,
+          "total": 2795.0,
+          "total_estimado": false
         }
       ]
     }
   ],
-  "otas_actualizado": "2026-11-06 15:53",
+  "otas_actualizado": "2026-11-07 00:51",
   "vuelos_actualizado": "2026-11-06 15:53",
-  "combinaciones": [
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-16",
-      "noches": 8,
-      "habitacion": "Suite",
-      "hotel_total": 2219.0,
-      "hotel_por_noche": 277.0,
-      "aerolinea": "Vueling",
-      "destino": "TFN",
-      "vuelo_por_adulto": 264.0,
-      "vuelo_fuente": "Google Flights (SerpApi)",
-      "vuelos_total": 792.0,
-      "total": 3011.0
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-16",
-      "noches": 8,
-      "habitacion": "Suite Ocean View",
-      "hotel_total": 2334.0,
-      "hotel_por_noche": 291.0,
-      "aerolinea": "Vueling",
-      "destino": "TFN",
-      "vuelo_por_adulto": 264.0,
-      "vuelo_fuente": "Google Flights (SerpApi)",
-      "vuelos_total": 792.0,
-      "total": 3126.0
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-16",
-      "noches": 8,
-      "habitacion": "Dúplex",
-      "hotel_total": 2443.0,
-      "hotel_por_noche": 305.0,
-      "aerolinea": "Vueling",
-      "destino": "TFN",
-      "vuelo_por_adulto": 264.0,
-      "vuelo_fuente": "Google Flights (SerpApi)",
-      "vuelos_total": 792.0,
-      "total": 3235.0
-    },
-    {
-      "entrada": "2027-08-07",
-      "salida": "2027-08-16",
-      "noches": 9,
-      "habitacion": "Suite",
-      "hotel_total": 2499.0,
-      "hotel_por_noche": 277.0,
-      "aerolinea": "Vueling",
-      "destino": "TFN",
-      "vuelo_por_adulto": 264.0,
-      "vuelo_fuente": "Google Flights (SerpApi)",
-      "vuelos_total": 792.0,
-      "total": 3291.0
-    },
-    {
-      "entrada": "2027-08-08",
-      "salida": "2027-08-17",
-      "noches": 9,
-      "habitacion": "Suite Ocean View",
-      "hotel_total": 2625.0,
-      "hotel_por_noche": 291.0,
-      "aerolinea": "Vueling",
-      "destino": "TFN",
-      "vuelo_por_adulto": 264.0,
-      "vuelo_fuente": "Google Flights (SerpApi)",
-      "vuelos_total": 792.0,
-      "total": 3417.0
-    },
-    {
-      "entrada": "2027-08-07",
-      "salida": "2027-08-16",
-      "noches": 9,
-      "habitacion": "Dúplex",
-      "hotel_total": 2753.0,
-      "hotel_por_noche": 305.0,
-      "aerolinea": "Vueling",
-      "destino": "TFN",
-      "vuelo_por_adulto": 264.0,
-      "vuelo_fuente": "Google Flights (SerpApi)",
-      "vuelos_total": 792.0,
-      "total": 3545.0
-    }
-  ],
+  "combinaciones": [],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-11-06 15:53",
-  "detalle_vuelos": "Desde 792 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-16 (BIO->TFN)"
+  "vuelos_comprobado": "2026-11-07 00:51",
+  "detalle_vuelos": "Sin ventana de fechas que consultar"
 }
