@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-11-14 15:16",
+  "ultima_comprobacion": "2026-11-15 00:07",
   "tarifas_actuales": [],
   "registros": [
     {
@@ -4184,6 +4184,16 @@
       "tarifas_encontradas": 0,
       "vuelos_abiertos": false,
       "detalle_vuelos": "Sin ventana de fechas que consultar"
+    },
+    {
+      "fecha": "2026-11-15 00:07",
+      "mejor_por_noche": null,
+      "mejor_total": null,
+      "mejor_detalle": null,
+      "mejor_viaje": null,
+      "tarifas_encontradas": 0,
+      "vuelos_abiertos": false,
+      "detalle_vuelos": "Sin ventana de fechas que consultar"
     }
   ],
   "ofertas_vuelos": [
@@ -4273,7 +4283,7 @@
     }
   ],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-11-14 15:16",
+  "otas_comprobado": "2026-11-15 00:07",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -4293,10 +4303,10 @@
       ]
     }
   ],
-  "otas_actualizado": "2026-11-14 15:16",
+  "otas_actualizado": "2026-11-15 00:07",
   "vuelos_actualizado": "2026-11-13 01:09",
   "combinaciones": [],
   "pasajeros": 3,
-  "vuelos_comprobado": "2026-11-14 15:16",
+  "vuelos_comprobado": "2026-11-15 00:07",
   "detalle_vuelos": "Sin ventana de fechas que consultar"
 }
