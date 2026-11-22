@@ -13,7 +13,7 @@
     "codigo_promo": null
   },
   "vuelos_abiertos": true,
-  "ultima_comprobacion": "2026-11-22 00:46",
+  "ultima_comprobacion": "2026-11-22 16:12",
   "tarifas_actuales": [
     {
       "entrada": "2027-08-08",
@@ -4650,6 +4650,28 @@
       "tarifas_encontradas": 140,
       "vuelos_abiertos": true,
       "detalle_vuelos": "Desde 792 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-16 (BIO->TFN)"
+    },
+    {
+      "fecha": "2026-11-22 16:12",
+      "mejor_por_noche": 279.0,
+      "mejor_total": 2238.0,
+      "mejor_detalle": {
+        "entrada": "2027-08-08",
+        "salida": "2027-08-16",
+        "noches": 8,
+        "habitacion": "Suite",
+        "regimen": "Todo Incluido Plus",
+        "total": 2238.0,
+        "por_noche": 279.0,
+        "antes": 2634.0,
+        "descuento": "-15%",
+        "cancelable": true,
+        "codigo_promo": null
+      },
+      "mejor_viaje": 3030.0,
+      "tarifas_encontradas": 140,
+      "vuelos_abiertos": true,
+      "detalle_vuelos": "Desde 792 EUR los 3 con Vueling, directo, ida y vuelta 2027-08-08 -> 2027-08-16 (BIO->TFN)"
     }
   ],
   "ofertas_vuelos": [
@@ -4739,7 +4761,7 @@
     }
   ],
   "referencia_noche": 283.86,
-  "otas_comprobado": "2026-11-22 00:46",
+  "otas_comprobado": "2026-11-22 16:12",
   "ofertas_otas": [
     {
       "entrada": "2027-08-02",
@@ -4759,7 +4781,7 @@
       ]
     }
   ],
-  "otas_actualizado": "2026-11-21 01:39",
+  "otas_actualizado": "2026-11-22 16:12",
   "vuelos_actualizado": "2026-11-22 00:46",
   "combinaciones": [
     {
